@@ -91,6 +91,9 @@
 #if !MESHTASTIC_EXCLUDE_PAXCOUNTER
 #include "modules/esp32/PaxcounterModule.h"
 #endif
+#ifdef HAS_RAAMSES
+#include "modules/esp32/RaamsesModule.h"
+#endif
 #if !MESHTASTIC_EXCLUDE_STOREFORWARD
 #include "modules/StoreForwardModule.h"
 #endif
@@ -262,6 +265,9 @@ void setupModules()
     if (moduleConfig.has_paxcounter && moduleConfig.paxcounter.enabled) {
         paxcounterModule = new PaxcounterModule();
     }
+#endif
+#ifdef HAS_RAAMSES
+    raamsesModule = new RaamsesModule();
 #endif
 #endif
 #if defined(ARCH_ESP32) || defined(ARCH_PORTDUINO)
