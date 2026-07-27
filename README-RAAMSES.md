@@ -43,7 +43,7 @@ pio run -e thinknode-m2-raamses
 
 1. **Boot splash** — On startup the OLED shows "RAAMSES / agent alert console" for
    3 seconds, then the normal Meshtastic UI takes over.
-2. **WiFi** — Connects to `seanrohde` / `piperbbs123` as a station.
+2. **WiFi** — Connects to configured SSID / password as a station.
 3. **Gateway registration** — Registers with the Raamses gateway at
    `192.168.6.230:8765` using HTTP `POST /register`.
 4. **Heartbeat** — Sends `POST /heartbeat` every 8 seconds.
