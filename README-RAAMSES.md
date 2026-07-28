@@ -1,234 +1,223 @@
-# RaamsesMesh — Multi-Board Agent Alert Firmware
+# RAAMSES for Meshtastic
 
-Meshtastic firmware fork that adds Raamses agent-alert display and haptic feedback
-across multiple Meshtastic-compatible boards.
+> **Long-range AI & DevOps notifications over LoRa.**
+>
+> Receive RAAMSES alerts on Meshtastic-compatible devices while preserving the full Meshtastic experience.
 
-## Supported Boards
+---
 
-| Board | Build Target | Display | Alert Output | Status |
-|-------|-------------|---------|-------------|--------|
-| Heltec V3 | `heltec-v3-raamses` | SSD1306 OLED | GPIO 21 (ext. motor) | Tested |
-| Heltec V4 | `heltec-v4-raamses` | SSD1306 OLED | GPIO 21 (ext. motor) | Drop-in |
-| ThinkNode M2 | `thinknode-m2-raamses` | SH1106 OLED | IO1 (built-in buzzer) | Port |
+## Why?
 
-## Building
+Modern AI agents don't stop working when you leave your desk.
+
+Whether you're running Claude Code, Hermes, Grok, local Qwen models, CI/CD pipelines, Kubernetes clusters, or traditional DevOps infrastructure, important events can happen at any time.
+
+RAAMSES allows those events to be delivered to Meshtastic devices over LoRa, creating an ultra-low-power, long-range notification console.
+
+Imagine receiving:
+
+- CI Build Failed
+- VPN Down
+- Agent Waiting for Approval
+- Production Deployment Complete
+- Server Offline
+- Security Alert
+- Backup Failed
+
+...even when you're miles away from Wi-Fi.
+
+---
+
+# What is RAAMSES?
+
+RAAMSES (Remote AI Agent Monitoring & Server Escalation System) is an AI Operations platform that monitors AI agents, servers, infrastructure, and automation workflows.
+
+The Meshtastic integration turns compatible LoRa devices into long-range RAAMSES consoles.
+
+The gateway handles all AI communication.
+
+Your Meshtastic device simply becomes another RAAMSES console.
+
+---
+
+# Design Goals
+
+- Preserve full Meshtastic functionality
+- Add optional RAAMSES support
+- Minimize code changes
+- Keep board definitions clean
+- Keep changes upstream-friendly
+- Make RAAMSES entirely optional
+- Keep power consumption low
+- Respect existing Meshtastic design principles
+
+---
+
+# Non-Goals
+
+This project does **not** attempt to:
+
+- Replace the Meshtastic UI
+- Change Meshtastic networking
+- Fork or modify the LoRa protocol
+- Break compatibility with existing devices
+- Add cloud dependencies
+- Force users to use RAAMSES
+
+If RAAMSES is disabled, the firmware behaves exactly like standard Meshtastic.
+
+---
+
+# Philosophy
+
+RAAMSES is designed as an optional extension—not a replacement.
+
+Think of it as another application that happens to speak the RAAMSES protocol.
+
+The goal is for users to continue enjoying everything Meshtastic already does while optionally receiving intelligent operational alerts.
+
+---
+
+# Example Alerts
+
+```
+CI BUILD FAILED
+
+BuildServer-01
+
+22:48
+```
+
+```
+VPN DOWN
+
+Office-West
+
+22:47
+```
+
+```
+AGENT WAITING
+
+Deploy v1.4?
+
+YES   NO
+```
+
+```
+PRODUCTION
+
+Deployment Complete
+
+Success
+```
+
+---
+
+# Architecture
+
+```
+AI Agents
+CI/CD
+Servers
+Containers
+Automation
+        │
+        │
+ RAAMSES Gateway
+        │
+ XML / HTTPS
+        │
+ RangePi Bridge
+        │
+ LoRa / Meshtastic
+        │
+ RAAMSES Console
+```
+
+The Meshtastic device is simply another RAAMSES console.
+
+---
+
+# Current Features
+
+- Optional RAAMSES module
+- LoRa alert delivery
+- Gateway registration
+- Device identification
+- Alert acknowledgements
+- Vibration notification support
+- Tiny OLED UI
+- Low-power operation
+- 3-byte compact binary LoRa protocol
+- Bridge + Node dual-mode operation
+- Multi-board support (Heltec V3, V4, ThinkNode M2)
+
+---
+
+# Planned Features
+
+- Alert history
+- Approval prompts
+- Multiple alert priorities
+- Silent mode
+- Device groups
+- OTA configuration
+- Secure pairing
+- Multi-gateway failover
+
+---
+
+# Supported Boards
+
+| Board | Build Target | Display | Alert Output |
+|-------|-------------|---------|-------------|
+| Heltec V3 | `heltec-v3-raamses` | SSD1306 OLED | GPIO 21 (ext. motor) |
+| Heltec V4 | `heltec-v4-raamses` | SSD1306 OLED | GPIO 21 (ext. motor) |
+| ThinkNode M2 | `thinknode-m2-raamses` | SH1106 OLED | IO1 (built-in buzzer) |
+
+## Quick Build
 
 ```bash
-pio run -e heltec-v3-raamses
-pio run -e heltec-v4-raamses
-pio run -e thinknode-m2-raamses
+git clone https://github.com/texsean/RaamsesMesh.git
+cd RaamsesMesh
+pio run -e heltec-v3-raamses      # Heltec V3
+pio run -e heltec-v4-raamses      # Heltec V4
+pio run -e thinknode-m2-raamses   # ThinkNode M2
 ```
 
-### Heltec V3 / V4
+For detailed build instructions, wiring diagrams, and the LoRa protocol spec, see [TECH.md](TECH.md).
 
-## What was changed
+---
 
-### New files
+# Contributing
 
-| File | Purpose |
-|------|---------|
-| `variants/esp32s3/heltec_v3_raamses/variant.h` | Board pinout + Raamses defines |
-| `variants/esp32s3/heltec_v3_raamses/platformio.ini` | PlatformIO build target |
-| `src/modules/esp32/RaamsesModule.h` | Module header |
-| `src/modules/esp32/RaamsesModule.cpp` | Module implementation |
-| `README-RAAMSES.md` | This file |
+Contributions are welcome.
 
-### Modified files
+Please help us:
 
-| File | Change |
-|------|--------|
-| `src/modules/Modules.cpp` | Added `#include` and instantiation of RaamsesModule |
+- Keep changes small
+- Preserve upstream compatibility
+- Follow existing Meshtastic coding conventions
+- Avoid unnecessary architectural changes
+- Keep RAAMSES optional
 
-### How it works
+If a feature benefits Meshtastic users in general, we'd love to see it accepted upstream.
 
-1. **Boot splash** — On startup the OLED shows "RAAMSES / agent alert console" for
-   3 seconds, then the normal Meshtastic UI takes over.
-2. **WiFi** — Connects to configured SSID / password as a station.
-3. **Gateway registration** — Registers with the Raamses gateway at
-   `192.168.6.230:8765` using HTTP `POST /register`.
-4. **Heartbeat** — Sends `POST /heartbeat` every 8 seconds.
-5. **Polling** — `GET /agents` every 5 seconds, scanning the response for
-   `"needs_help"`, `"needs help"`, `"AGENT_NEEDS_HELP"`, or `"status":"alert"`.
-6. **Alert** — When an alert is detected, the screen shows "AGENT NEEDS HELP!"
-   and the vibration motor pulses for 5 seconds (500ms on / 500ms off).
-7. **Existing Meshtastic** — LoRa mesh, button menu navigation, and all other
-   Meshtastic features continue to work normally.
+---
 
-## GPIO pin mapping (Heltec V3)
+# Powered by RAAMSES
 
-```
-Pin  GPIO   Function
-─────────────────────────────────────
- 0    0     User button (Mesh UI)
- 1    1     Battery ADC
- 8    8     LoRa CS
- 9    9     LoRa SCK
-10   10     LoRa MOSI
-11   11     LoRa MISO
-12   12     LoRa RESET
-13   13     LoRa DIO2 / BUSY
-14   14     LoRa DIO1 / IRQ
-21   21    >VIBRATION MOTOR<  ← NEW
-37   37     ADC_CTRL
-SDA  (41)   OLED I2C
-SCL  (42)   OLED I2C
-Vext        Power enable (OLED + LoRa boost)
-```
+One Server.
 
-## Wiring the vibration motor
+Any Console.
 
-```
-        GPIO 21  ──[ 1KΩ ]──┐
-                             │  B (base)
-                        ┌────┴────┐
-                        │   NPN   │  2N2222 / 2N3904 / S8050
-                        │         │
-                        └────┬────┘
-                             │  E (emitter)
-                             │
-                            GND
+Anywhere.
 
-        3.3V or 5V ──[ Motor ]──┐
-                                 │  C (collector)
-                                 │
-               ┌─────────────────┘
-               │  (flyback diode)
-               ├──[ 1N4001 ]──┐  (cathode toward VCC)
-               │               │
-               └───────────────┘
-                anode → GND side of motor
-                cathode → VCC side of motor
-```
+Android • Desktop • ESP32 • M5Stack • E-Paper • Meshtastic • Future Devices
 
-- **GPIO 21** is available on the Heltec V3 pin headers (top row, 4th from left).
-- Use an NPN transistor (2N2222, 2N3904, or S8050) — GPIO 21 drives the base
-  via a 1KΩ resistor.
-- **The 1N4001 flyback diode is mandatory** — without it the motor's back-EMF
-  will kill the transistor and possibly the ESP32.
-- If the motor draws >20mA from GPIO, you MUST use the transistor circuit above.
-  Never connect a motor directly to a GPIO pin.
+---
 
-### Power notes
+**This project is not affiliated with the Meshtastic project.**
 
-- A **coin/pancake vibration motor** (10mm, 3V) works well off the 3.3V rail.
-- If using a larger motor, power it from the Vext or USB 5V rail via a MOSFET
-  instead.  An AO3400 N-channel MOSFET can switch 5V from GPIO 21 without a
-  transistor.
-
-## Building
-
-```bash
-# Prerequisites: PlatformIO
-pip install platformio
-
-# Build the Raamses variant
-cd firmware
-pio run -e heltec-v3-raamses
-
-# Flash to device
-pio run -e heltec-v3-raamses -t upload --upload-port /dev/ttyUSB0
-```
-
-## Gateway API format expected
-
-The Raamses gateway must return one of these patterns in `GET /agents`:
-
-```json
-{"agents": [{..., "status": "alert", "needs_help": true}]}
-// OR
-{"agents": [{..., "needs_help": true}]}
-// OR
-"AGENT_NEEDS_HELP"
-```
-
-**If your gateway doesn't currently expose a `needs_help` field**, you'll need
-to add one.  The simplest approach: add `"needs_help": true` to any agent whose
-status transitions to "alert" in the `/agents` response.
-
-## LoRa Mesh Relay
-
-The RaamsesModule now operates in **two modes** from a single firmware build:
-
-### Bridge mode (WiFi + LoRa)
-
-When a device connects to the gateway via WiFi, it becomes a **bridge**:
-1. Polls the gateway HTTP API for agent alerts
-2. On alert: buzzes locally AND broadcasts `RAAMSES_ALERT` over the LoRa mesh
-3. All other RaamsesMesh devices in range receive it — no WiFi needed
-
-### Node mode (LoRa only)
-
-Devices without WiFi (or out of WiFi range) listen passively on the mesh:
-1. Receive `RAAMSES_ALERT` packets on port 256 (PRIVATE_APP)
-2. Buzz and display the alert
-3. Debounce: ignore mesh alerts within 2 seconds of their own HTTP alert
-
-### Range
-
-```
-   Gateway (Pi 5 + RangePi antenna)
-        │ WiFi
-   ┌────┴────┐
-   │ Bridge  │  ← Heltec V3/V4/M2 near the server
-   │ (WiFi + │     polls HTTP, sends LoRa on alert
-   │  LoRa)  │
-   └────┬────┘
-        │ LoRa broadcast (miles with RangePi!)
-   ┌────┼────┬─────────────┐
-   ↓    ↓    ↓             ↓
- Node Node Node          Node
- (V3) (V4) (M2)         (2 miles away)
-        All buzz within LoRa range
-```
-
-### How it works
-
-- **Bridge** detects alert from HTTP → calls `sendMeshAlert()` which broadcasts a 14-byte
-  payload `RAAMSES_ALERT` on `meshtastic_PortNum_PRIVATE_APP` (port 256)
-- **All nodes** (including the bridge) have `handleReceived()` listening for that payload
-- **Debounce**: the bridge sets `lastMeshAlertAt` when it sends, so it ignores its own
-  echoed packet (and any node that just buzzed won't double-buzz)
-- **No config needed** — same firmware on every board. The bridge is whichever device
-  has WiFi. Nodes just need LoRa.
-
-## ThinkNode M2 specifics
-
-The M2 has a **built-in buzzer** on IO1 (shared with the power LED). No external
-vibration motor needed — the buzzer pulses audibly when an alert fires.
-
-### M2 GPIO reference
-
-```
-Pin   GPIO   Function
-────────────────────────────────
-SCL   15     OLED I2C clock
-SDA   16     OLED I2C data
-46    46     Display power control
-47    47     FUNCTION button (UI navigation)
-4      4     POWER button
-0      0     BOOT button
-1      1     Buzzer + Power LED (Raamses alert)
-10    10     LoRa CS
-12    12     LoRa SCK
-11    11     LoRa MOSI
-13    13     LoRa MISO
-21    21     LoRa RESET
-14    14     LoRa BUSY
-3      3     LoRa DIO1
-```
-
-**Note:** If the buzzer doesn't respond on IO1, check the board schematic.
-The buzzer may be on a different pin (possibly IO6). The `VIBRATION_MOTOR_PIN`
-in variant.h is easy to change.
-
-## Pitfalls
-
-- **Registration race**: the gateway has a ~500ms race between registration and
-  indexing. The module waits an extra 600ms before the first poll to avoid a
-  false "not registered" error.
-- **WiFi conflict**: if Meshtastic's WiFi web server (HTTPS/WiFi config) is
-  enabled, it may conflict with the STA connection. Use AP+STA mode or disable
-  the web server if both are needed simultaneously.
-- **Screen conflict**: the alert screen paints directly to the OLED. The normal
-  Meshtastic UI will overwrite it within one frame cycle (~200ms). For a
-  persistent alert, consider using `screen->startAlert()` instead.
+It is an optional integration intended to work alongside the excellent Meshtastic ecosystem while respecting its architecture and community.
