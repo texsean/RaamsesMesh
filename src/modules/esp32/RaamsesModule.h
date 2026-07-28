@@ -4,6 +4,7 @@
 
 #if defined(ARCH_ESP32) && defined(HAS_RAAMSES)
 
+#include "RaamsesProto.h"
 #include "SinglePortModule.h"
 #include "concurrency/OSThread.h"
 #include <WiFi.h>
@@ -12,24 +13,19 @@
 /**
  * RaamsesModule — agent alert display, haptic feedback, and LoRa mesh relay.
  *
- * Two operating modes in one firmware:
- *   1. BRIDGE mode: connected to WiFi, polls the Raamses gateway via HTTP.
- *      When an alert is detected, buzzes locally AND broadcasts via LoRa mesh.
- *   2. NODE mode: listens on the LoRa mesh for Raamses alert packets.
- *      When received, buzzes and displays the alert — no WiFi needed.
+ * Two modes from one firmware:
+ *   BRIDGE: WiFi-connected, polls gateway HTTP, buzzes + broadcasts on LoRa.
+ *   NODE:   LoRa-only, listens for RaamsesProto packets, buzzes on receipt.
  *
- * A single device can be both BRIDGE and NODE simultaneously: if the
- * WiFi-connected unit detects an alert, it buzzes immediately (HTTP path)
- * and also forwards it to every LoRa node in range.
+ * Protocol: 3-byte binary packets — see RaamsesProto.h.
  */
 class RaamsesModule : private concurrency::OSThread, public SinglePortModule
 {
     enum State {
-        STARTUP,          // showing "RAAMSES" splash
-        WIFI_CONNECTING,  // connecting to WiFi STA
-        WIFI_CONNECTED,   // WiFi up, registering with gateway
-        GATEWAY_ACTIVE,   // polling gateway, normal operation
-        ALERT,            // agent needs help — buzzing
+        STARTUP,
+        WIFI_CONNECTING,
+        WIFI_CONNECTED,
+        GATEWAY_ACTIVE,
     };
 
     State state = STARTUP;
@@ -40,27 +36,34 @@ class RaamsesModule : private concurrency::OSThread, public SinglePortModule
     bool lastAlertState = false;
     uint32_t alertBuzzerUntil = 0;
     int alertBuzzerPhase = 0;
-    bool wifiConnected = false;     // true when we have WiFi (bridge mode active)
-    uint32_t lastMeshAlertAt = 0;   // debounce: ignore mesh alerts shortly after HTTP alert
-
-    static const char ALERT_PAYLOAD[];
+    bool wifiConnected = false;
+    uint32_t lastMeshAlertAt = 0;
+    uint8_t alertCount = 0;       // rolling counter, wraps at 255
+    uint8_t pagerId = 0x01;       // 0=bridge, 1-254=node; defaults to 1 unless set
 
   public:
     RaamsesModule();
+
+    // Set this device's pager ID (0=bridge, 1-254=node)
+    void setPagerId(uint8_t id) { pagerId = id; }
+    uint8_t getPagerId() const { return pagerId; }
 
   protected:
     // OSThread
     virtual int32_t runOnce() override;
 
-    // SinglePortModule — receive mesh alert packets
+    // SinglePortModule
     virtual ProcessMessage handleReceived(const meshtastic_MeshPacket &mp) override;
     virtual bool wantPacket(const meshtastic_MeshPacket *p) override;
 
-    // Send alert over LoRa mesh
-    void sendMeshAlert();
+    // Send a RaamsesProto packet over LoRa
+    void sendMeshPacket(const RaamsesProto::Packet &pkt);
 
     // Trigger local buzz + screen
-    void triggerLocalAlert(const char *msg);
+    void triggerLocalAlert(const char *source);
+
+    // Test buzz (called by BUZZ command from mesh)
+    void handleBuzz(uint8_t halfSeconds);
 
     void buzzAlert(uint32_t durationMs);
 
