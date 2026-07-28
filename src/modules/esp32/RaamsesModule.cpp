@@ -140,13 +140,15 @@ ProcessMessage RaamsesModule::handleReceived(const meshtastic_MeshPacket &mp)
     case RaamsesProto::CLEAR:
         LOG_INFO("Raamses: alert cleared via mesh");
         lastAlertState = false;
+        ledFlashUntil = 0;
+        digitalWrite(LED_PIN, LED_STATE_ON ? LOW : HIGH);
 #if HAS_SCREEN
         screen->endAlert();
 #endif
         break;
 
     case RaamsesProto::BUZZ:
-        handleBuzz(pkt->data);
+        flashLed(pkt->data * 500);  // half-seconds → ms LED flash
         break;
 
     case RaamsesProto::ACK:
@@ -178,14 +180,15 @@ void RaamsesModule::triggerLocalAlert(const char *source)
 #if HAS_SCREEN
     drawAlertOnScreen(source);
 #endif
-    buzzAlert(5000);
+    flashLed(5000);  // 5 seconds of LED flashing for alert
 }
 
-void RaamsesModule::handleBuzz(uint8_t halfSeconds)
+// ─── LED flash patterns ───────────────────────────────────────
+
+void RaamsesModule::flashLed(uint32_t durationMs)
 {
-    uint32_t ms = halfSeconds * 500;
-    LOG_INFO("Raamses: test buzz for %u ms", ms);
-    buzzAlert(ms);
+    ledFlashUntil = millis() + durationMs;
+    ledFlashPhase = 0;
 }
 
 // ─── OSThread ─────────────────────────────────────────────────
@@ -203,18 +206,30 @@ int32_t RaamsesModule::runOnce()
 {
     uint32_t now = millis();
 
-    // ── Buzzer PWM ────────────────────────────────────────
-    if (alertBuzzerUntil && now < alertBuzzerUntil) {
-        bool phase = ((now / 500) % 2) == 0;
-        if (phase != (bool)alertBuzzerPhase) {
-            alertBuzzerPhase = (int)phase;
-            digitalWrite(VIBRATION_MOTOR_PIN, phase ? HIGH : LOW);
+    // ── LED flash pattern ─────────────────────────────────
+    // Patterns:
+    //   Alert active:       fast blink — 250ms on / 250ms off
+    //   Splash/startup:     slow blink — 500ms on / 500ms off
+    //   Normal / cleared:   LED off
+
+    if (ledFlashUntil) {
+        if (now < ledFlashUntil) {
+            // Fast blink during alert (250ms period)
+            uint32_t period = lastAlertState ? 250 : 500;
+            bool phase = ((now / period) % 2) == 0;
+            if (phase != (bool)ledFlashPhase) {
+                ledFlashPhase = (int)phase;
+                digitalWrite(LED_PIN, phase ? LED_STATE_ON : !LED_STATE_ON);
+            }
+        } else {
+            // Flash duration expired — turn LED off
+            digitalWrite(LED_PIN, LED_STATE_ON ? LOW : HIGH);
+            ledFlashUntil = 0;
+            ledFlashPhase = 0;
         }
-        return 100;
-    } else if (alertBuzzerUntil && now >= alertBuzzerUntil) {
-        digitalWrite(VIBRATION_MOTOR_PIN, LOW);
-        alertBuzzerUntil = 0;
-        alertBuzzerPhase = 0;
+        // Fast poll while LED is flashing
+        if (ledFlashUntil)
+            return 100;
     }
 
     switch (state) {
@@ -226,9 +241,11 @@ int32_t RaamsesModule::runOnce()
 #endif
             splashShown = true;
             stateSince = now;
-            pinMode(VIBRATION_MOTOR_PIN, OUTPUT);
-            digitalWrite(VIBRATION_MOTOR_PIN, LOW);
-            LOG_INFO("Raamses: pager 0x%02X ready, pin %d", pagerId, VIBRATION_MOTOR_PIN);
+            pinMode(LED_PIN, OUTPUT);
+            digitalWrite(LED_PIN, LED_STATE_ON ? LOW : HIGH);
+            // Slow blink during splash
+            flashLed(3000);
+            LOG_INFO("Raamses: pager 0x%02X ready, LED pin %d", pagerId, LED_PIN);
         }
         if (now - stateSince > 3000) {
 #if HAS_SCREEN
@@ -319,7 +336,9 @@ int32_t RaamsesModule::runOnce()
                 lastAlertState = true;
             }
             if (!needsHelp && lastAlertState) {
-                // Alert cleared — broadcast CLEAR, dismiss display
+                // Alert cleared — stop LED, broadcast CLEAR, dismiss display
+                ledFlashUntil = 0;
+                digitalWrite(LED_PIN, LED_STATE_ON ? LOW : HIGH);
 #if HAS_SCREEN
                 screen->endAlert();
 #endif
@@ -333,12 +352,6 @@ int32_t RaamsesModule::runOnce()
 
     } // switch
     return 1000;
-}
-
-void RaamsesModule::buzzAlert(uint32_t durationMs)
-{
-    alertBuzzerUntil = millis() + durationMs;
-    alertBuzzerPhase = 0;
 }
 
 #endif // ARCH_ESP32 && HAS_RAAMSES

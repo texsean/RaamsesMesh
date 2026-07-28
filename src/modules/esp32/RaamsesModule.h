@@ -34,12 +34,14 @@ class RaamsesModule : private concurrency::OSThread, public SinglePortModule
     uint32_t lastPoll = 0;
     bool splashShown = false;
     bool lastAlertState = false;
-    uint32_t alertBuzzerUntil = 0;
-    int alertBuzzerPhase = 0;
     bool wifiConnected = false;
     uint32_t lastMeshAlertAt = 0;
     uint8_t alertCount = 0;       // rolling counter, wraps at 255
     uint8_t pagerId = 0x01;       // 0=bridge, 1-254=node; defaults to 1 unless set
+
+    // LED flash state (replaces vibration motor)
+    uint32_t ledFlashUntil = 0;
+    int ledFlashPhase = 0;
 
   public:
     RaamsesModule();
@@ -59,13 +61,11 @@ class RaamsesModule : private concurrency::OSThread, public SinglePortModule
     // Send a RaamsesProto packet over LoRa
     void sendMeshPacket(const RaamsesProto::Packet &pkt);
 
-    // Trigger local buzz + screen
+    // Trigger local buzzer + screen (buzzer disabled — LED flash instead)
     void triggerLocalAlert(const char *source);
 
-    // Test buzz (called by BUZZ command from mesh)
-    void handleBuzz(uint8_t halfSeconds);
-
-    void buzzAlert(uint32_t durationMs);
+    // LED flash: test command from mesh
+    void flashLed(uint32_t durationMs);
 
 #if HAS_SCREEN
     void drawAlertOnScreen(const char *msg);
