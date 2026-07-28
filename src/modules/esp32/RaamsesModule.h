@@ -9,13 +9,14 @@
 #include "concurrency/OSThread.h"
 #include <WiFi.h>
 #include <HTTPClient.h>
+#include <string>
 
 /**
- * RaamsesModule — agent alert display, haptic feedback, and LoRa mesh relay.
+ * RaamsesModule — agent alert display, LED flash, and LoRa mesh relay.
  *
  * Two modes from one firmware:
- *   BRIDGE: WiFi-connected, polls gateway HTTP, buzzes + broadcasts on LoRa.
- *   NODE:   LoRa-only, listens for RaamsesProto packets, buzzes on receipt.
+ *   BRIDGE: WiFi-connected, polls gateway HTTP, shows status screen, broadcasts on LoRa.
+ *   NODE:   LoRa-only, listens for RaamsesProto packets, shows alerts on receipt.
  *
  * Protocol: 3-byte binary packets — see RaamsesProto.h.
  */
@@ -43,6 +44,14 @@ class RaamsesModule : private concurrency::OSThread, public SinglePortModule
     uint32_t ledFlashUntil = 0;
     int ledFlashPhase = 0;
 
+    // Status bar
+    std::string statusMessage;
+    bool showingRaamsesOverlay = false;
+
+    // Button debounce for Meshtastic toggle
+    uint32_t lastButtonCheck = 0;
+    bool lastButtonState = true;  // pull-up, so HIGH = released
+
   public:
     RaamsesModule();
 
@@ -61,11 +70,14 @@ class RaamsesModule : private concurrency::OSThread, public SinglePortModule
     // Send a RaamsesProto packet over LoRa
     void sendMeshPacket(const RaamsesProto::Packet &pkt);
 
-    // Trigger local buzzer + screen (buzzer disabled — LED flash instead)
+    // Trigger local alert: screen + LED flash
     void triggerLocalAlert(const char *source);
 
-    // LED flash: test command from mesh
+    // LED flash: start flashing for durationMs
     void flashLed(uint32_t durationMs);
+
+    // Status screen (persistent frame with bottom bar)
+    void showStatusScreen();
 
 #if HAS_SCREEN
     void drawAlertOnScreen(const char *msg);

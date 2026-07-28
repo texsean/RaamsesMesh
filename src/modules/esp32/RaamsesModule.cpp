@@ -20,7 +20,6 @@ void RaamsesModule::drawSplashOnScreen()
 {
     if (!screen) return;
 
-    // Custom splash frame — shows for ~3s during STARTUP, then drops back to normal UI
     auto splashFrame = [](OLEDDisplay *display, OLEDDisplayUiState *state, int16_t x, int16_t y) {
         display->setFont(FONT_LARGE);
         display->setTextAlignment(TEXT_ALIGN_CENTER);
@@ -35,7 +34,6 @@ void RaamsesModule::drawAlertOnScreen(const char *msg)
 {
     if (!screen) return;
 
-    // Persistent alert frame — stays until endAlert() is called
     std::string source(msg ? msg : "");
     auto alertFrame = [source](OLEDDisplay *display, OLEDDisplayUiState *state, int16_t x, int16_t y) {
         display->setFont(FONT_MEDIUM);
@@ -49,6 +47,47 @@ void RaamsesModule::drawAlertOnScreen(const char *msg)
         }
     };
     screen->startAlert(alertFrame);
+}
+
+void RaamsesModule::showStatusScreen()
+{
+    if (!screen) return;
+
+    // Capture a copy of statusMessage for the frame callback
+    std::string msg = statusMessage;
+    bool connected = wifiConnected;
+
+    auto statusFrame = [msg, connected](OLEDDisplay *display, OLEDDisplayUiState *state, int16_t x, int16_t y) {
+        int w = display->getWidth();
+        int h = display->getHeight();
+
+        // ── Main content area ──────────────────────────────
+        display->setColor(WHITE);
+        display->setFont(FONT_LARGE);
+        display->setTextAlignment(TEXT_ALIGN_CENTER);
+        display->drawString(w / 2 + x, 8 + y, "RAAMSES");
+
+        display->setFont(FONT_SMALL);
+        if (connected) {
+            display->drawString(w / 2 + x, 30 + y, "Gateway connected");
+        } else {
+            display->drawString(w / 2 + x, 30 + y, "LoRa mesh mode");
+        }
+
+        // ── Bottom status bar (inverted: black bg, white text) ──
+        const int barH = 12;
+        int barY = h - barH;
+        display->setColor(BLACK);
+        display->fillRect(0 + x, barY + y, w, barH);
+        display->setColor(WHITE);
+        display->setFont(FONT_SMALL);
+        display->setTextAlignment(TEXT_ALIGN_CENTER);
+        display->drawString(w / 2 + x, barY + 2 + y, msg.c_str());
+        display->setColor(WHITE); // restore
+    };
+
+    screen->startAlert(statusFrame);
+    showingRaamsesOverlay = true;
 }
 #endif
 
@@ -97,13 +136,11 @@ void RaamsesModule::sendMeshPacket(const RaamsesProto::Packet &pkt)
 
 ProcessMessage RaamsesModule::handleReceived(const meshtastic_MeshPacket &mp)
 {
-    // Ignore own packets
     if (mp.from == nodeDB->getNodeNum())
         return ProcessMessage::CONTINUE;
 
     auto *pkt = reinterpret_cast<const RaamsesProto::Packet *>(mp.decoded.payload.bytes);
 
-    // Validate
     if (mp.decoded.payload.size != sizeof(RaamsesProto::Packet))
         return ProcessMessage::CONTINUE;
     if (!pkt->valid()) {
@@ -129,7 +166,6 @@ ProcessMessage RaamsesModule::handleReceived(const meshtastic_MeshPacket &mp)
         lastAlertState = true;
         lastMeshAlertAt = now;
 
-        // Send ACK back to bridge (if we're not the bridge)
         if (pagerId != RaamsesProto::BRIDGE) {
             auto ackPkt = RaamsesProto::ack(pagerId);
             sendMeshPacket(ackPkt);
@@ -144,11 +180,13 @@ ProcessMessage RaamsesModule::handleReceived(const meshtastic_MeshPacket &mp)
         digitalWrite(LED_PIN, LED_STATE_ON ? LOW : HIGH);
 #if HAS_SCREEN
         screen->endAlert();
+        statusMessage = "All systems OK";
+        showStatusScreen();
 #endif
         break;
 
     case RaamsesProto::BUZZ:
-        flashLed(pkt->data * 500);  // half-seconds → ms LED flash
+        flashLed(pkt->data * 500);
         break;
 
     case RaamsesProto::ACK:
@@ -177,13 +215,15 @@ bool RaamsesModule::wantPacket(const meshtastic_MeshPacket *p)
 void RaamsesModule::triggerLocalAlert(const char *source)
 {
     LOG_WARN("Raamses: AGENT NEEDS HELP (%s)", source);
+    statusMessage = source;
 #if HAS_SCREEN
+    screen->endAlert();
     drawAlertOnScreen(source);
 #endif
-    flashLed(5000);  // 5 seconds of LED flashing for alert
+    flashLed(5000);
 }
 
-// ─── LED flash patterns ───────────────────────────────────────
+// ─── LED flash ────────────────────────────────────────────────
 
 void RaamsesModule::flashLed(uint32_t durationMs)
 {
@@ -200,6 +240,7 @@ RaamsesModule::RaamsesModule()
     raamsesModule = this;
     state = STARTUP;
     stateSince = millis();
+    statusMessage = "Starting up...";
 }
 
 int32_t RaamsesModule::runOnce()
@@ -207,14 +248,8 @@ int32_t RaamsesModule::runOnce()
     uint32_t now = millis();
 
     // ── LED flash pattern ─────────────────────────────────
-    // Patterns:
-    //   Alert active:       fast blink — 250ms on / 250ms off
-    //   Splash/startup:     slow blink — 500ms on / 500ms off
-    //   Normal / cleared:   LED off
-
     if (ledFlashUntil) {
         if (now < ledFlashUntil) {
-            // Fast blink during alert (250ms period)
             uint32_t period = lastAlertState ? 250 : 500;
             bool phase = ((now / period) % 2) == 0;
             if (phase != (bool)ledFlashPhase) {
@@ -222,15 +257,34 @@ int32_t RaamsesModule::runOnce()
                 digitalWrite(LED_PIN, phase ? LED_STATE_ON : !LED_STATE_ON);
             }
         } else {
-            // Flash duration expired — turn LED off
             digitalWrite(LED_PIN, LED_STATE_ON ? LOW : HIGH);
             ledFlashUntil = 0;
             ledFlashPhase = 0;
         }
-        // Fast poll while LED is flashing
         if (ledFlashUntil)
             return 100;
     }
+
+    // ── Button check (toggle Raamses overlay / Meshtastic UI) ──
+#ifdef BUTTON_PIN
+    if (now - lastButtonCheck > 200) {
+        bool btn = digitalRead(BUTTON_PIN);
+        // Button pressed: LOW (pull-up) transition
+        if (!btn && lastButtonState && (now - lastButtonCheck > 200)) {
+            LOG_INFO("Raamses: button pressed — toggle overlay");
+#if HAS_SCREEN
+            if (showingRaamsesOverlay) {
+                screen->endAlert();
+                showingRaamsesOverlay = false;
+            } else if (wifiConnected || state >= WIFI_CONNECTED) {
+                showStatusScreen();
+            }
+#endif
+        }
+        lastButtonState = btn;
+        lastButtonCheck = now;
+    }
+#endif
 
     switch (state) {
 
@@ -243,13 +297,15 @@ int32_t RaamsesModule::runOnce()
             stateSince = now;
             pinMode(LED_PIN, OUTPUT);
             digitalWrite(LED_PIN, LED_STATE_ON ? LOW : HIGH);
-            // Slow blink during splash
+#ifdef BUTTON_PIN
+            pinMode(BUTTON_PIN, INPUT_PULLUP);
+#endif
             flashLed(3000);
             LOG_INFO("Raamses: pager 0x%02X ready, LED pin %d", pagerId, LED_PIN);
         }
         if (now - stateSince > 3000) {
 #if HAS_SCREEN
-            screen->endAlert(); // dismiss splash, hand back to normal UI
+            screen->endAlert();
 #endif
             state = WIFI_CONNECTING;
             stateSince = now;
@@ -258,6 +314,7 @@ int32_t RaamsesModule::runOnce()
     }
 
     case WIFI_CONNECTING: {
+        statusMessage = "Connecting WiFi...";
         WiFi.mode(WIFI_STA);
         esp_wifi_set_max_tx_power(78);
         WiFi.begin(RAAMSES_WIFI_SSID, RAAMSES_WIFI_PASS);
@@ -267,13 +324,14 @@ int32_t RaamsesModule::runOnce()
         while (WiFi.status() != WL_CONNECTED) {
             if (millis() - start > 15000) {
                 LOG_WARN("Raamses: Wi-Fi timeout, retrying in 10s");
+                statusMessage = "WiFi timeout — retrying";
                 WiFi.disconnect();
                 return 10000;
             }
             delay(200);
         }
         wifiConnected = true;
-        pagerId = RaamsesProto::BRIDGE; // we're the bridge
+        pagerId = RaamsesProto::BRIDGE;
         LOG_INFO("Raamses: Wi-Fi up, IP=%s, BRIDGE mode", WiFi.localIP().toString().c_str());
         state = WIFI_CONNECTED;
         stateSince = now;
@@ -281,6 +339,7 @@ int32_t RaamsesModule::runOnce()
     }
 
     case WIFI_CONNECTED: {
+        statusMessage = "Registering with gateway...";
         String deviceId = "heltec-" + String((uint32_t)ESP.getEfuseMac(), HEX);
         String json = "{\"device_id\":\"" + deviceId +
                       "\",\"device_type\":\"" RAAMSES_DEVICE_TYPE
@@ -289,12 +348,18 @@ int32_t RaamsesModule::runOnce()
 
         if (resp.indexOf("\"accepted\"") > 0 || resp.indexOf("\"registered\"") > 0) {
             LOG_INFO("Raamses: gateway registered");
+            statusMessage = "All systems OK";
             state = GATEWAY_ACTIVE;
             stateSince = now;
             lastHeartbeat = now;
             lastPoll = now + 600;
+#if HAS_SCREEN
+            screen->endAlert();
+            showStatusScreen();
+#endif
         } else {
             LOG_WARN("Raamses: registration failed, retry 5s");
+            statusMessage = "Gateway registration failed";
             return 5000;
         }
         return 0;
@@ -302,14 +367,18 @@ int32_t RaamsesModule::runOnce()
 
     case GATEWAY_ACTIVE: {
         if (!wifiConnected) {
+            statusMessage = "WiFi disconnected";
             return 5000;
         }
 
         // Heartbeat
         if (now - lastHeartbeat >= 8000) {
             String deviceId = "heltec-" + String((uint32_t)ESP.getEfuseMac(), HEX);
-            gatewayPost("/heartbeat",
+            String hbResp = gatewayPost("/heartbeat",
                         "{\"device_id\":\"" + deviceId + "\",\"uptime_seconds\":" + String(millis()/1000) + "}");
+            if (hbResp.length() == 0 || hbResp.indexOf("error") >= 0) {
+                statusMessage = "Server unreachable";
+            }
             lastHeartbeat = now;
         }
 
@@ -317,6 +386,10 @@ int32_t RaamsesModule::runOnce()
         if (now - lastPoll >= 5000) {
             String body = gatewayGet("/agents");
             lastPoll = now;
+
+            if (body.length() == 0) {
+                statusMessage = "No response from server";
+            }
 
             bool needsHelp = false;
             if (body.length() > 0) {
@@ -336,15 +409,30 @@ int32_t RaamsesModule::runOnce()
                 lastAlertState = true;
             }
             if (!needsHelp && lastAlertState) {
-                // Alert cleared — stop LED, broadcast CLEAR, dismiss display
+                // Alert cleared
                 ledFlashUntil = 0;
                 digitalWrite(LED_PIN, LED_STATE_ON ? LOW : HIGH);
+                statusMessage = "All systems OK";
 #if HAS_SCREEN
                 screen->endAlert();
+                showStatusScreen();
 #endif
                 auto pkt = RaamsesProto::clear(alertCount);
                 sendMeshPacket(pkt);
                 lastAlertState = false;
+            }
+
+            // Periodic status bar update (even when no state change)
+            if (!lastAlertState && showingRaamsesOverlay && body.length() > 0) {
+                // Gateway responsive — status is OK
+                if (statusMessage.find("No response") != std::string::npos ||
+                    statusMessage.find("unreachable") != std::string::npos) {
+                    statusMessage = "All systems OK";
+#if HAS_SCREEN
+                    screen->endAlert();
+                    showStatusScreen();
+#endif
+                }
             }
         }
         return 500;
