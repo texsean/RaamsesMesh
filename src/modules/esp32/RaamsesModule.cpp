@@ -19,33 +19,36 @@ RaamsesModule *raamsesModule = nullptr;
 void RaamsesModule::drawSplashOnScreen()
 {
     if (!screen) return;
-    auto *display = screen->getDisplayDevice();
-    if (!display) return;
-    display->clear();
-    display->setFont(FONT_LARGE);
-    display->setTextAlignment(TEXT_ALIGN_CENTER);
-    display->drawString(display->getWidth() / 2, 10, "RAAMSES");
-    display->setFont(FONT_SMALL);
-    display->drawString(display->getWidth() / 2, 40, "agent alert console");
-    display->display();
+
+    // Custom splash frame — shows for ~3s during STARTUP, then drops back to normal UI
+    auto splashFrame = [](OLEDDisplay *display, OLEDDisplayUiState *state, int16_t x, int16_t y) {
+        display->setFont(FONT_LARGE);
+        display->setTextAlignment(TEXT_ALIGN_CENTER);
+        display->drawString(display->getWidth() / 2 + x, 10 + y, "RAAMSES");
+        display->setFont(FONT_SMALL);
+        display->drawString(display->getWidth() / 2 + x, 40 + y, "agent alert console");
+    };
+    screen->startAlert(splashFrame);
 }
 
 void RaamsesModule::drawAlertOnScreen(const char *msg)
 {
     if (!screen) return;
-    auto *display = screen->getDisplayDevice();
-    if (!display) return;
-    display->clear();
-    display->setFont(FONT_MEDIUM);
-    display->setTextAlignment(TEXT_ALIGN_CENTER);
-    display->drawString(display->getWidth() / 2, 10, "AGENT NEEDS");
-    display->setFont(FONT_LARGE);
-    display->drawString(display->getWidth() / 2, 30, "HELP!");
-    if (msg && msg[0]) {
-        display->setFont(FONT_SMALL);
-        display->drawString(display->getWidth() / 2, 50, msg);
-    }
-    display->display();
+
+    // Persistent alert frame — stays until endAlert() is called
+    std::string source(msg ? msg : "");
+    auto alertFrame = [source](OLEDDisplay *display, OLEDDisplayUiState *state, int16_t x, int16_t y) {
+        display->setFont(FONT_MEDIUM);
+        display->setTextAlignment(TEXT_ALIGN_CENTER);
+        display->drawString(display->getWidth() / 2 + x, 10 + y, "AGENT NEEDS");
+        display->setFont(FONT_LARGE);
+        display->drawString(display->getWidth() / 2 + x, 30 + y, "HELP!");
+        if (!source.empty()) {
+            display->setFont(FONT_SMALL);
+            display->drawString(display->getWidth() / 2 + x, 50 + y, source.c_str());
+        }
+    };
+    screen->startAlert(alertFrame);
 }
 #endif
 
@@ -137,6 +140,9 @@ ProcessMessage RaamsesModule::handleReceived(const meshtastic_MeshPacket &mp)
     case RaamsesProto::CLEAR:
         LOG_INFO("Raamses: alert cleared via mesh");
         lastAlertState = false;
+#if HAS_SCREEN
+        screen->endAlert();
+#endif
         break;
 
     case RaamsesProto::BUZZ:
@@ -225,6 +231,9 @@ int32_t RaamsesModule::runOnce()
             LOG_INFO("Raamses: pager 0x%02X ready, pin %d", pagerId, VIBRATION_MOTOR_PIN);
         }
         if (now - stateSince > 3000) {
+#if HAS_SCREEN
+            screen->endAlert(); // dismiss splash, hand back to normal UI
+#endif
             state = WIFI_CONNECTING;
             stateSince = now;
         }
@@ -310,7 +319,10 @@ int32_t RaamsesModule::runOnce()
                 lastAlertState = true;
             }
             if (!needsHelp && lastAlertState) {
-                // Alert cleared — broadcast CLEAR
+                // Alert cleared — broadcast CLEAR, dismiss display
+#if HAS_SCREEN
+                screen->endAlert();
+#endif
                 auto pkt = RaamsesProto::clear(alertCount);
                 sendMeshPacket(pkt);
                 lastAlertState = false;
