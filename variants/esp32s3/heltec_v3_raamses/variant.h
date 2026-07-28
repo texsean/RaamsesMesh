@@ -50,8 +50,8 @@
 #define VIBRATION_MOTOR_PIN 21
 
 // Wi-Fi credentials for the Raamses gateway network
-#define RAAMSES_WIFI_SSID "##########"
-#define RAAMSES_WIFI_PASS "##########"
+#define RAAMSES_WIFI_SSID "seanrohde"
+#define RAAMSES_WIFI_PASS "piperbbs123"
 
 // Raamses gateway address
 #define RAAMSES_GATEWAY_HOST "192.168.6.230"

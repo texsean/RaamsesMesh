@@ -47,8 +47,8 @@
 // V4 pins are drop-in compatible with V3 per Heltec documentation.
 #define VIBRATION_MOTOR_PIN 21
 
-#define RAAMSES_WIFI_SSID "##########"
-#define RAAMSES_WIFI_PASS "##########"
+#define RAAMSES_WIFI_SSID "seanrohde"
+#define RAAMSES_WIFI_PASS "piperbbs123"
 
 #define RAAMSES_GATEWAY_HOST "192.168.6.230"
 #define RAAMSES_GATEWAY_PORT 8765

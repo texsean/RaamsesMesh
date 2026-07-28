@@ -49,8 +49,8 @@
 // Built-in buzzer on IO1 (shared with LED indicator)
 #define VIBRATION_MOTOR_PIN 1   // Use the built-in buzzer instead of external motor
 
-#define RAAMSES_WIFI_SSID "##########"
-#define RAAMSES_WIFI_PASS "##########"
+#define RAAMSES_WIFI_SSID "seanrohde"
+#define RAAMSES_WIFI_PASS "piperbbs123"
 
 #define RAAMSES_GATEWAY_HOST "192.168.6.230"
 #define RAAMSES_GATEWAY_PORT 8765
