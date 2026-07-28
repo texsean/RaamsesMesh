@@ -4,21 +4,25 @@
 
 #if defined(ARCH_ESP32) && defined(HAS_RAAMSES)
 
+#include "SinglePortModule.h"
 #include "concurrency/OSThread.h"
 #include <WiFi.h>
 #include <HTTPClient.h>
 
 /**
- * RaamsesModule — agent alert display & haptic feedback for Meshtastic Heltec V3.
+ * RaamsesModule — agent alert display, haptic feedback, and LoRa mesh relay.
  *
- * Startup: draws "RAAMSES" on the SSD1306 OLED for a few seconds, then
- * falls through to the normal Meshtastic UI.  Background thread connects
- * to the Raamses gateway (HTTP on port 8765), registers this device,
- * sends periodic heartbeats, and polls for agent status.  When any agent
- * transitions to "needs help" the vibration motor on VIBRATION_MOTOR_PIN
- * is pulsed and an alert banner is drawn on screen.
+ * Two operating modes in one firmware:
+ *   1. BRIDGE mode: connected to WiFi, polls the Raamses gateway via HTTP.
+ *      When an alert is detected, buzzes locally AND broadcasts via LoRa mesh.
+ *   2. NODE mode: listens on the LoRa mesh for Raamses alert packets.
+ *      When received, buzzes and displays the alert — no WiFi needed.
+ *
+ * A single device can be both BRIDGE and NODE simultaneously: if the
+ * WiFi-connected unit detects an alert, it buzzes immediately (HTTP path)
+ * and also forwards it to every LoRa node in range.
  */
-class RaamsesModule : private concurrency::OSThread
+class RaamsesModule : private concurrency::OSThread, public SinglePortModule
 {
     enum State {
         STARTUP,          // showing "RAAMSES" splash
@@ -36,21 +40,31 @@ class RaamsesModule : private concurrency::OSThread
     bool lastAlertState = false;
     uint32_t alertBuzzerUntil = 0;
     int alertBuzzerPhase = 0;
+    bool wifiConnected = false;     // true when we have WiFi (bridge mode active)
+    uint32_t lastMeshAlertAt = 0;   // debounce: ignore mesh alerts shortly after HTTP alert
 
-    // Gateway HTTP helpers
-    String gatewayGet(const char *path);
-    String gatewayPost(const char *path, const String &jsonBody);
-    void buzzAlert(uint32_t durationMs);
+    static const char ALERT_PAYLOAD[];
 
   public:
     RaamsesModule();
 
   protected:
+    // OSThread
     virtual int32_t runOnce() override;
 
+    // SinglePortModule — receive mesh alert packets
+    virtual ProcessMessage handleReceived(const meshtastic_MeshPacket &mp) override;
+    virtual bool wantPacket(const meshtastic_MeshPacket *p) override;
+
+    // Send alert over LoRa mesh
+    void sendMeshAlert();
+
+    // Trigger local buzz + screen
+    void triggerLocalAlert(const char *msg);
+
+    void buzzAlert(uint32_t durationMs);
+
 #if HAS_SCREEN
-    virtual bool wantUIFrame() override { return false; }
-    // Custom drawing called directly — not via the UI frame system
     void drawAlertOnScreen(const char *msg);
     void drawSplashOnScreen();
 #endif

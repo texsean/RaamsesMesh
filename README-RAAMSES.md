@@ -145,12 +145,51 @@ The Raamses gateway must return one of these patterns in `GET /agents`:
 to add one.  The simplest approach: add `"needs_help": true` to any agent whose
 status transitions to "alert" in the `/agents` response.
 
-## Future: Meshtastic alert relay
+## LoRa Mesh Relay
 
-The module is structured so that once "agent needs help" is detected, the alert
-can be broadcast over the Meshtastic mesh to partner devices (pagers, other
-nodes).  The `ALERT` state is already wired — just add mesh packet transmission
-in `runOnce()` under that case.
+The RaamsesModule now operates in **two modes** from a single firmware build:
+
+### Bridge mode (WiFi + LoRa)
+
+When a device connects to the gateway via WiFi, it becomes a **bridge**:
+1. Polls the gateway HTTP API for agent alerts
+2. On alert: buzzes locally AND broadcasts `RAAMSES_ALERT` over the LoRa mesh
+3. All other RaamsesMesh devices in range receive it — no WiFi needed
+
+### Node mode (LoRa only)
+
+Devices without WiFi (or out of WiFi range) listen passively on the mesh:
+1. Receive `RAAMSES_ALERT` packets on port 256 (PRIVATE_APP)
+2. Buzz and display the alert
+3. Debounce: ignore mesh alerts within 2 seconds of their own HTTP alert
+
+### Range
+
+```
+   Gateway (Pi 5 + RangePi antenna)
+        │ WiFi
+   ┌────┴────┐
+   │ Bridge  │  ← Heltec V3/V4/M2 near the server
+   │ (WiFi + │     polls HTTP, sends LoRa on alert
+   │  LoRa)  │
+   └────┬────┘
+        │ LoRa broadcast (miles with RangePi!)
+   ┌────┼────┬─────────────┐
+   ↓    ↓    ↓             ↓
+ Node Node Node          Node
+ (V3) (V4) (M2)         (2 miles away)
+        All buzz within LoRa range
+```
+
+### How it works
+
+- **Bridge** detects alert from HTTP → calls `sendMeshAlert()` which broadcasts a 14-byte
+  payload `RAAMSES_ALERT` on `meshtastic_PortNum_PRIVATE_APP` (port 256)
+- **All nodes** (including the bridge) have `handleReceived()` listening for that payload
+- **Debounce**: the bridge sets `lastMeshAlertAt` when it sends, so it ignores its own
+  echoed packet (and any node that just buzzed won't double-buzz)
+- **No config needed** — same firmware on every board. The bridge is whichever device
+  has WiFi. Nodes just need LoRa.
 
 ## ThinkNode M2 specifics
 

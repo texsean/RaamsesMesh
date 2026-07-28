@@ -3,8 +3,8 @@
 #if defined(ARCH_ESP32) && defined(HAS_RAAMSES)
 
 #include "RaamsesModule.h"
-#include "Default.h"
 #include "MeshService.h"
+#include "Router.h"
 #include "graphics/Screen.h"
 #include "graphics/ScreenFonts.h"
 #include <WiFi.h>
@@ -12,6 +12,9 @@
 #include <esp_wifi.h>
 
 RaamsesModule *raamsesModule = nullptr;
+
+// Payload for mesh alert — keep it short, LoRa packets are precious
+const char RaamsesModule::ALERT_PAYLOAD[] = "RAAMSES_ALERT";
 
 // ─── screen drawing helpers ───────────────────────────────────
 
@@ -70,7 +73,6 @@ static String gatewayGet(const char *path)
     int code = http.GET();
     String body = (code > 0) ? http.getString() : "";
     http.end();
-    LOG_DEBUG("Raamses GET %s -> %d", path, code);
     return body;
 }
 
@@ -84,14 +86,84 @@ static String gatewayPost(const char *path, const String &jsonBody)
     int code = http.POST(jsonBody);
     String body = (code > 0) ? http.getString() : "";
     http.end();
-    LOG_DEBUG("Raamses POST %s -> %d  body=%s", path, code, jsonBody.c_str());
     return body;
+}
+
+// ─── Mesh alert relay ─────────────────────────────────────────
+
+void RaamsesModule::sendMeshAlert()
+{
+    meshtastic_MeshPacket *p = allocDataPacket();
+    if (!p) {
+        LOG_WARN("Raamses: could not allocate mesh packet for alert");
+        return;
+    }
+
+    p->decoded.payload.size = strlen(ALERT_PAYLOAD);
+    memcpy(p->decoded.payload.bytes, ALERT_PAYLOAD, p->decoded.payload.size);
+    p->to = NODENUM_BROADCAST;
+    p->want_ack = false; // fire and forget — every node should hear it
+
+    service->sendToMesh(p);
+    LOG_INFO("Raamses: mesh alert broadcast sent");
+}
+
+ProcessMessage RaamsesModule::handleReceived(const meshtastic_MeshPacket &mp)
+{
+    // Ignore our own packets (we already buzzed from the HTTP path)
+    if (mp.from == nodeDB->getNodeNum()) {
+        LOG_DEBUG("Raamses: ignoring own mesh alert");
+        return ProcessMessage::CONTINUE;
+    }
+
+    // Debounce: if we just triggered an HTTP alert, don't double-buzz
+    uint32_t now = millis();
+    if (now - lastMeshAlertAt < 2000) {
+        LOG_DEBUG("Raamses: mesh alert debounced (within 2s of last alert)");
+        return ProcessMessage::CONTINUE;
+    }
+
+    LOG_INFO("Raamses: mesh alert received from node 0x%08x", mp.from);
+
+    // Only trigger if we're not already in alert state
+    if (!lastAlertState) {
+        triggerLocalAlert("via LoRa mesh");
+    }
+
+    // Track the alert as active even if we debounced
+    lastAlertState = true;
+    lastMeshAlertAt = now;
+
+    return ProcessMessage::CONTINUE;
+}
+
+bool RaamsesModule::wantPacket(const meshtastic_MeshPacket *p)
+{
+    // Only interested in our custom port with the alert payload
+    if (p->decoded.portnum != ourPortNum)
+        return false;
+    if (p->decoded.payload.size != strlen(ALERT_PAYLOAD))
+        return false;
+    return memcmp(p->decoded.payload.bytes, ALERT_PAYLOAD, p->decoded.payload.size) == 0;
+}
+
+// ─── Local alert trigger ──────────────────────────────────────
+
+void RaamsesModule::triggerLocalAlert(const char *msg)
+{
+    LOG_WARN("Raamses: AGENT NEEDS HELP — buzzing! (%s)", msg);
+#if HAS_SCREEN
+    drawAlertOnScreen(msg);
+#endif
+    buzzAlert(5000);
+    lastAlertState = true;
 }
 
 // ─── OSThread lifecycle ───────────────────────────────────────
 
 RaamsesModule::RaamsesModule()
-    : concurrency::OSThread("Raamses")
+    : concurrency::OSThread("Raamses"),
+      SinglePortModule("Raamses", meshtastic_PortNum_PRIVATE_APP)
 {
     raamsesModule = this;
     state = STARTUP;
@@ -104,14 +176,13 @@ int32_t RaamsesModule::runOnce()
 
     // ── Buzzer PWM management (non-blocking) ─────────────────
     if (alertBuzzerUntil && now < alertBuzzerUntil) {
-        // 500ms on / 500ms off pattern
         bool phase = ((now / 500) % 2) == 0;
         bool changed = (phase != (bool)alertBuzzerPhase);
         if (changed) {
             alertBuzzerPhase = (int)phase;
             digitalWrite(VIBRATION_MOTOR_PIN, phase ? HIGH : LOW);
         }
-        return 100; // check again soon
+        return 100;
     } else if (alertBuzzerUntil && now >= alertBuzzerUntil) {
         digitalWrite(VIBRATION_MOTOR_PIN, LOW);
         alertBuzzerUntil = 0;
@@ -121,7 +192,6 @@ int32_t RaamsesModule::runOnce()
     switch (state) {
 
     case STARTUP: {
-        // Show splash for 3 seconds
         if (!splashShown) {
 #if HAS_SCREEN
             drawSplashOnScreen();
@@ -129,7 +199,6 @@ int32_t RaamsesModule::runOnce()
             splashShown = true;
             stateSince = now;
 
-            // Init buzzer pin
             pinMode(VIBRATION_MOTOR_PIN, OUTPUT);
             digitalWrite(VIBRATION_MOTOR_PIN, LOW);
 
@@ -146,8 +215,7 @@ int32_t RaamsesModule::runOnce()
 
     case WIFI_CONNECTING: {
         WiFi.mode(WIFI_STA);
-        // Increase WiFi power for reliable range
-        esp_wifi_set_max_tx_power(78); // 19.5 dBm
+        esp_wifi_set_max_tx_power(78);
         WiFi.begin(RAAMSES_WIFI_SSID, RAAMSES_WIFI_PASS);
 
         LOG_INFO("Raamses: connecting to Wi-Fi SSID=%s", RAAMSES_WIFI_SSID);
@@ -157,19 +225,19 @@ int32_t RaamsesModule::runOnce()
             if (millis() - start > 15000) {
                 LOG_WARN("Raamses: Wi-Fi timeout, retrying in 10 s");
                 WiFi.disconnect();
-                return 10000; // retry
+                return 10000;
             }
             delay(200);
         }
 
-        LOG_INFO("Raamses: Wi-Fi connected, IP=%s", WiFi.localIP().toString().c_str());
+        wifiConnected = true;
+        LOG_INFO("Raamses: Wi-Fi connected, IP=%s (bridge mode active)", WiFi.localIP().toString().c_str());
         state = WIFI_CONNECTED;
         stateSince = now;
-        return 0; // advance immediately
+        return 0;
     }
 
     case WIFI_CONNECTED: {
-        // Register with gateway
         String deviceId = "heltec-" + String((uint32_t)ESP.getEfuseMac(), HEX);
         String json = "{\"device_id\":\"" + deviceId +
                       "\",\"device_type\":\"" RAAMSES_DEVICE_TYPE
@@ -178,15 +246,12 @@ int32_t RaamsesModule::runOnce()
         String resp = gatewayPost("/register", json);
         LOG_INFO("Raamses: register response: %s", resp.c_str());
 
-        // Check if response contains "accepted":true or "registered"
         if (resp.indexOf("\"accepted\"") > 0 || resp.indexOf("\"registered\"") > 0) {
             LOG_INFO("Raamses: gateway registration accepted");
             state = GATEWAY_ACTIVE;
             stateSince = now;
             lastHeartbeat = now;
-            lastPoll = now;
-            // Delay first poll to avoid the 500ms registration indexing race
-            lastPoll += 600; // offset poll so first one fires after the race window
+            lastPoll = now + 600; // offset for registration race
         } else {
             LOG_WARN("Raamses: registration failed, retrying in 5 s");
             return 5000;
@@ -195,7 +260,13 @@ int32_t RaamsesModule::runOnce()
     }
 
     case GATEWAY_ACTIVE: {
-        // ── Heartbeat every 8 seconds ──
+        if (!wifiConnected) {
+            // WiFi dropped — just listen on mesh
+            state = GATEWAY_ACTIVE;
+            return 5000;
+        }
+
+        // ── Heartbeat ──
         if (now - lastHeartbeat >= 8000) {
             String deviceId = "heltec-" + String((uint32_t)ESP.getEfuseMac(), HEX);
             String json = "{\"device_id\":\"" + deviceId + "\",\"uptime_seconds\":" + String(millis() / 1000) + "}";
@@ -203,52 +274,47 @@ int32_t RaamsesModule::runOnce()
             lastHeartbeat = now;
         }
 
-        // ── Poll agents for status changes ──
+        // ── Poll agents ──
         if (now - lastPoll >= 5000) {
             String body = gatewayGet("/agents");
             lastPoll = now;
 
-            // Simple string scan: look for "needs_help" or "needs help" in the response
             bool agentNeedsHelp = false;
-            String alertMsg = "";
 
             if (body.length() > 0) {
-                // Check for explicit alert field
                 if (body.indexOf("\"needs_help\"") > 0 || body.indexOf("needs help") > 0 ||
                     body.indexOf("AGENT_NEEDS_HELP") > 0) {
                     agentNeedsHelp = true;
-                    alertMsg = "Agent requires attention";
                 }
-
-                // Also check for status field containing "alert" or "error"
                 if (body.indexOf("\"status\":\"alert\"") > 0 || body.indexOf("\"status\": \"alert\"") > 0) {
                     agentNeedsHelp = true;
-                    alertMsg = "Agent alert status";
                 }
             }
 
-            // Rising edge: no alert → alert
+            // Rising edge: HTTP alert detected
             if (agentNeedsHelp && !lastAlertState) {
-                LOG_WARN("Raamses: AGENT NEEDS HELP — buzzing!");
-#if HAS_SCREEN
-                drawAlertOnScreen(alertMsg.c_str());
-#endif
-                buzzAlert(5000); // buzz for 5 seconds
+                triggerLocalAlert("via gateway");
+
+                // ── RELAY OVER LORA MESH ──
+                sendMeshAlert();
+                lastMeshAlertAt = now;
             }
 
-            // Falling edge: alert cleared
+            // Falling edge
             if (!agentNeedsHelp && lastAlertState) {
                 LOG_INFO("Raamses: alert cleared");
+                lastAlertState = false;
             }
 
-            lastAlertState = agentNeedsHelp;
+            if (!agentNeedsHelp) {
+                lastAlertState = false;
+            }
         }
 
-        return 500; // sleep half a second between checks
+        return 500;
     }
 
     case ALERT:
-        // Alert state managed by rising edge in GATEWAY_ACTIVE
         state = GATEWAY_ACTIVE;
         return 0;
 
