@@ -49,6 +49,10 @@
 // A 1N4001 flyback diode across the motor is mandatory.
 #define VIBRATION_MOTOR_PIN 21
 
+// Built-in LED on GPIO 35 (active low on Heltec V3)
+#define LED_PIN 35
+#define LED_STATE_ON 0
+
 // Wi-Fi credentials for the Raamses gateway network
 #define RAAMSES_WIFI_SSID "seanrohde"
 #define RAAMSES_WIFI_PASS "piperbbs123"

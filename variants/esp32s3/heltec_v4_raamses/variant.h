@@ -47,6 +47,10 @@
 // V4 pins are drop-in compatible with V3 per Heltec documentation.
 #define VIBRATION_MOTOR_PIN 21
 
+// Built-in LED on GPIO 35 (active low on Heltec V4)
+#define LED_PIN 35
+#define LED_STATE_ON 0
+
 #define RAAMSES_WIFI_SSID "seanrohde"
 #define RAAMSES_WIFI_PASS "piperbbs123"
 

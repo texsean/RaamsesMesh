@@ -4,6 +4,7 @@
 
 #define LED_POWER 1
 #define LED_PIN 1
+#define LED_STATE_ON 1   // active-high on ThinkNode M2
 
 // Display: 1.3" OLED SH1106, I2C
 #define USE_SH1106
