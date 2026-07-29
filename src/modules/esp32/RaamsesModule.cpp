@@ -75,7 +75,7 @@ void RaamsesModule::showStatusScreen()
         }
 
         // ── Bottom status bar (inverted: black bg, white text) ──
-        const int barH = 12;
+        const int barH = 16;
         int barY = h - barH;
         display->setColor(BLACK);
         display->fillRect(0 + x, barY + y, w, barH);
@@ -178,9 +178,8 @@ ProcessMessage RaamsesModule::handleReceived(const meshtastic_MeshPacket &mp)
         lastAlertState = false;
         ledFlashUntil = 0;
         digitalWrite(LED_PIN, LED_STATE_ON ? LOW : HIGH);
-#if HAS_SCREEN
-        screen->endAlert();
         statusMessage = "All systems OK";
+#if HAS_SCREEN
         showStatusScreen();
 #endif
         break;
@@ -217,7 +216,6 @@ void RaamsesModule::triggerLocalAlert(const char *source)
     LOG_WARN("Raamses: AGENT NEEDS HELP (%s)", source);
     statusMessage = source;
 #if HAS_SCREEN
-    screen->endAlert();
     drawAlertOnScreen(source);
 #endif
     flashLed(5000);
@@ -304,8 +302,9 @@ int32_t RaamsesModule::runOnce()
             LOG_INFO("Raamses: pager 0x%02X ready, LED pin %d", pagerId, LED_PIN);
         }
         if (now - stateSince > 3000) {
+            // Smooth transition: show status frame directly (never expose Meshtastic UI)
 #if HAS_SCREEN
-            screen->endAlert();
+            showStatusScreen();
 #endif
             state = WIFI_CONNECTING;
             stateSince = now;
@@ -354,7 +353,6 @@ int32_t RaamsesModule::runOnce()
             lastHeartbeat = now;
             lastPoll = now + 600;
 #if HAS_SCREEN
-            screen->endAlert();
             showStatusScreen();
 #endif
         } else {
@@ -409,12 +407,11 @@ int32_t RaamsesModule::runOnce()
                 lastAlertState = true;
             }
             if (!needsHelp && lastAlertState) {
-                // Alert cleared
+                // Alert cleared — stop LED, broadcast CLEAR, back to status
                 ledFlashUntil = 0;
                 digitalWrite(LED_PIN, LED_STATE_ON ? LOW : HIGH);
                 statusMessage = "All systems OK";
 #if HAS_SCREEN
-                screen->endAlert();
                 showStatusScreen();
 #endif
                 auto pkt = RaamsesProto::clear(alertCount);
@@ -429,7 +426,6 @@ int32_t RaamsesModule::runOnce()
                     statusMessage.find("unreachable") != std::string::npos) {
                     statusMessage = "All systems OK";
 #if HAS_SCREEN
-                    screen->endAlert();
                     showStatusScreen();
 #endif
                 }
