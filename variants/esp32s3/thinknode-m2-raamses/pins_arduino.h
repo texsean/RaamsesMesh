@@ -1,6 +1,5 @@
 // pins_arduino.h — ThinkNode M2 Raamses (ESP32-S3)
-// Provides SPI pin definitions required by the Espressif framework's SPI.cpp
-// board_level = extra makes PlatformIO use this instead of the framework's version
+// SPI/I2C pin definitions. #ifndef guards allow -D build flags to override.
 
 #ifndef Pins_Arduino_h
 #define Pins_Arduino_h
@@ -12,17 +11,33 @@
 #define USB_PID 0x1001
 
 // Serial
+#ifndef TX
 static const uint8_t TX = 43;
+#endif
+#ifndef RX
 static const uint8_t RX = 44;
+#endif
 
-// SPI (VSPI / FSPI on ESP32-S3)
+// SPI (FSPI/VSPI)
+#ifndef SS
 static const uint8_t SS   = 10;
+#endif
+#ifndef SCK
 static const uint8_t SCK  = 12;
+#endif
+#ifndef MOSI
 static const uint8_t MOSI = 11;
+#endif
+#ifndef MISO
 static const uint8_t MISO = 13;
+#endif
 
 // I2C
-static const uint8_t SCL = 5;
-static const uint8_t SDA = 4;
+#ifndef SDA
+static const uint8_t SDA = 16;
+#endif
+#ifndef SCL
+static const uint8_t SCL = 15;
+#endif
 
 #endif /* Pins_Arduino_h */
