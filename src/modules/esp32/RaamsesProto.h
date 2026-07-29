@@ -9,9 +9,9 @@
 // All packets are encrypted by Meshtastic's channel layer — no LRC needed.
 //
 // Commands:
-//   0x01 ALERT      agent needs help.       payload: [count:1]
+//   0x01 ALERT      agent needs help.       payload: [count:1][seq:2]
 //   0x02 ACK        acknowledge receipt.    payload: [pagerId:1]
-//   0x03 CLEAR      alert resolved.         payload: [count:1]
+//   0x03 CLEAR      alert resolved.         payload: [count:1][seq:2]
 //   0x04 HEARTBEAT  periodic keepalive.     payload: [nodeId:4][status:1]
 //   0x05 REGISTER   device registration.    payload: [nodeId:4][deviceType:1][fwVersion:2]
 //   0x06 BUZZ       test buzzer/LED.        payload: [durationHalfSec:1]
@@ -68,9 +68,9 @@ enum Id : uint8_t {
 };
 
 // ── Maximum payload size helpers ────────────────────────────
-inline constexpr uint8_t PAYLOAD_ALERT     = 1;  // count
+inline constexpr uint8_t PAYLOAD_ALERT     = 3;  // count(1) + seq(2)
 inline constexpr uint8_t PAYLOAD_ACK       = 1;  // pagerId
-inline constexpr uint8_t PAYLOAD_CLEAR     = 1;  // count
+inline constexpr uint8_t PAYLOAD_CLEAR     = 3;  // count(1) + seq(2)
 inline constexpr uint8_t PAYLOAD_HEARTBEAT = 5;  // nodeId(4) + status(1)
 inline constexpr uint8_t PAYLOAD_REGISTER  = 7;  // nodeId(4) + deviceType(1) + fwVersion(2)
 inline constexpr uint8_t PAYLOAD_BUZZ      = 1;  // duration
@@ -81,11 +81,12 @@ inline constexpr uint8_t HEADER_SIZE = 2;  // cmd + len
 // ── Builders ────────────────────────────────────────────────
 // Each fills `buf` with [cmd][len][payload...] and returns total size.
 
-inline uint8_t buildAlert(uint8_t *buf, uint8_t count) {
+inline uint8_t buildAlert(uint8_t *buf, uint8_t count, uint16_t seq) {
     buf[0] = ALERT;
-    buf[1] = 1;
+    buf[1] = 3;
     buf[2] = count;
-    return 3;
+    memcpy(&buf[3], &seq, 2);
+    return 5;
 }
 
 inline uint8_t buildAck(uint8_t *buf, uint8_t pagerId) {
@@ -95,11 +96,12 @@ inline uint8_t buildAck(uint8_t *buf, uint8_t pagerId) {
     return 3;
 }
 
-inline uint8_t buildClear(uint8_t *buf, uint8_t count) {
+inline uint8_t buildClear(uint8_t *buf, uint8_t count, uint16_t seq) {
     buf[0] = CLEAR;
-    buf[1] = 1;
+    buf[1] = 3;
     buf[2] = count;
-    return 3;
+    memcpy(&buf[3], &seq, 2);
+    return 5;
 }
 
 inline uint8_t buildHeartbeat(uint8_t *buf, uint32_t nodeId, uint8_t status) {

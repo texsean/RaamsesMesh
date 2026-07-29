@@ -61,7 +61,6 @@ void RaamsesModule::showStatusScreen()
         int w = display->getWidth();
         int h = display->getHeight();
 
-        // ── Main content area ──────────────────────────────
         display->setColor(WHITE);
         display->setFont(FONT_LARGE);
         display->setTextAlignment(TEXT_ALIGN_CENTER);
@@ -74,7 +73,6 @@ void RaamsesModule::showStatusScreen()
             display->drawString(w / 2 + x, 30 + y, "LoRa mesh mode");
         }
 
-        // ── Bottom status bar (inverted: black bg, white text) ──
         const int barH = 16;
         int barY = h - barH;
         display->setColor(BLACK);
@@ -116,7 +114,7 @@ static String gatewayPost(const char *path, const String &jsonBody) {
     return body;
 }
 
-// ─── Mesh protocol (variable-length, private channel) ─────────
+// ─── Mesh protocol ────────────────────────────────────────────
 
 void RaamsesModule::sendMeshPacket(const uint8_t *payload, uint8_t size)
 {
@@ -133,30 +131,31 @@ void RaamsesModule::sendMeshPacket(const uint8_t *payload, uint8_t size)
     service->sendToMesh(p);
 }
 
-void RaamsesModule::sendAlert(uint8_t count) {
-    uint8_t buf[8];
-    uint8_t sz = RaamsesProto::buildAlert(buf, count);
+void RaamsesModule::sendAlert(uint8_t count, uint16_t seq) {
+    uint8_t buf[16];
+    uint8_t sz = RaamsesProto::buildAlert(buf, count, seq);
     sendMeshPacket(buf, sz);
-    LOG_INFO("Raamses: mesh sent ALERT count=%u", count);
+    LOG_INFO("Raamses: mesh sent ALERT count=%u seq=%u", count, seq);
 }
 
 void RaamsesModule::sendAck(uint8_t pid) {
-    uint8_t buf[8];
+    uint8_t buf[16];
     uint8_t sz = RaamsesProto::buildAck(buf, pid);
     sendMeshPacket(buf, sz);
     LOG_INFO("Raamses: mesh sent ACK pager=0x%02X", pid);
 }
 
-void RaamsesModule::sendClear(uint8_t count) {
-    uint8_t buf[8];
-    uint8_t sz = RaamsesProto::buildClear(buf, count);
+void RaamsesModule::sendClear(uint8_t count, uint16_t seq) {
+    uint8_t buf[16];
+    uint8_t sz = RaamsesProto::buildClear(buf, count, seq);
     sendMeshPacket(buf, sz);
-    LOG_INFO("Raamses: mesh sent CLEAR count=%u", count);
+    LOG_INFO("Raamses: mesh sent CLEAR count=%u seq=%u", count, seq);
 }
 
 void RaamsesModule::sendHeartbeat() {
     uint8_t buf[16];
-    uint8_t sz = RaamsesProto::buildHeartbeat(buf, nodeId, RaamsesProto::OK);
+    uint8_t status = wifiConnected ? RaamsesProto::OK : RaamsesProto::LORA_ONLY;
+    uint8_t sz = RaamsesProto::buildHeartbeat(buf, nodeId, status);
     sendMeshPacket(buf, sz);
 }
 
@@ -176,6 +175,39 @@ void RaamsesModule::sendRegister() {
     sendMeshPacket(buf, sz);
     LOG_INFO("Raamses: mesh sent REGISTER nodeId=%08X type=%s ver=%u.%u",
              nodeId, RaamsesProto::deviceTypeName(dt), fwVersion >> 8, fwVersion & 0xFF);
+}
+
+// ─── Mesh → HTTP relay (bridge forwards LoRa packets to gateway) ──
+
+void RaamsesModule::relayRegisterToGateway(const uint8_t *data, uint8_t len)
+{
+    if (!wifiConnected || len < 5) return;
+
+    uint32_t remoteId;
+    memcpy(&remoteId, data, 4);
+    String deviceId = "meshtastic_" + String(remoteId, HEX);
+    String json = "{\"device_id\":\"" + deviceId +
+                  "\",\"device_type\":\"" + String(RaamsesProto::deviceTypeName(data[4])) +
+                  "\",\"source\":\"lora_relay\",\"schema_version\":\"1.0\"}";
+
+    String resp = gatewayPost("/register", json);
+    LOG_INFO("Raamses: relayed REGISTER for node %08X → HTTP: %s",
+             remoteId, resp.length() > 0 ? "ok" : "timeout");
+}
+
+void RaamsesModule::relayHeartbeatToGateway(const uint8_t *data, uint8_t len)
+{
+    if (!wifiConnected || len < 5) return;
+
+    uint32_t remoteId;
+    memcpy(&remoteId, data, 4);
+    String deviceId = "meshtastic_" + String(remoteId, HEX);
+    String json = "{\"device_id\":\"" + deviceId +
+                  "\",\"uptime_seconds\":0,\"status\":" + String(data[4]) +
+                  ",\"source\":\"lora_relay\"}";
+
+    gatewayPost("/heartbeat", json);
+    // LOG_DEBUG for heartbeats or they'll flood the serial
 }
 
 // ─── Receive ─────────────────────────────────────────────────
@@ -201,7 +233,19 @@ ProcessMessage RaamsesModule::handleReceived(const meshtastic_MeshPacket &mp)
     switch (cmd) {
 
     case RaamsesProto::ALERT: {
-        if (len < 1) return ProcessMessage::CONTINUE;
+        if (len < 3) return ProcessMessage::CONTINUE;
+
+        // Extract sequence number, reject old/duplicate ALERTs
+        uint16_t seq;
+        memcpy(&seq, &data[1], 2);
+
+        if (haveLastSeq && seq <= lastAlertSeq) {
+            LOG_WARN("Raamses: ignoring stale ALERT seq=%u (last=%u)", seq, lastAlertSeq);
+            return ProcessMessage::CONTINUE;
+        }
+        lastAlertSeq = seq;
+        haveLastSeq = true;
+
         uint32_t now = millis();
         if (now - lastMeshAlertAt < 2000) {
             LOG_DEBUG("Raamses: mesh alert debounced");
@@ -219,7 +263,18 @@ ProcessMessage RaamsesModule::handleReceived(const meshtastic_MeshPacket &mp)
         break;
     }
 
-    case RaamsesProto::CLEAR:
+    case RaamsesProto::CLEAR: {
+        if (len < 3) return ProcessMessage::CONTINUE;
+
+        // Only accept CLEAR with the same sequence as the active alert
+        uint16_t seq;
+        memcpy(&seq, &data[1], 2);
+
+        if (haveLastSeq && seq < lastAlertSeq) {
+            LOG_WARN("Raamses: ignoring stale CLEAR seq=%u (last=%u)", seq, lastAlertSeq);
+            return ProcessMessage::CONTINUE;
+        }
+
         lastAlertState = false;
         ledFlashUntil = 0;
         digitalWrite(LED_PIN, LED_STATE_ON ? LOW : HIGH);
@@ -228,6 +283,7 @@ ProcessMessage RaamsesModule::handleReceived(const meshtastic_MeshPacket &mp)
         showStatusScreen();
 #endif
         break;
+    }
 
     case RaamsesProto::BUZZ:
         if (len >= 1) flashLed(data[0] * 500);
@@ -238,11 +294,15 @@ ProcessMessage RaamsesModule::handleReceived(const meshtastic_MeshPacket &mp)
         break;
 
     case RaamsesProto::REGISTER:
-        if (len >= 3) {
+        if (len >= 5) {
             uint32_t remoteId;
             memcpy(&remoteId, data, 4);
             LOG_INFO("Raamses: REGISTER from node %08X type=%s",
                      remoteId, RaamsesProto::deviceTypeName(data[4]));
+            // Bridge: forward to HTTP gateway so LoRa nodes appear in registry
+            if (wifiConnected && pagerId == RaamsesProto::BRIDGE) {
+                relayRegisterToGateway(data, len);
+            }
         }
         break;
 
@@ -251,6 +311,10 @@ ProcessMessage RaamsesModule::handleReceived(const meshtastic_MeshPacket &mp)
             uint32_t remoteId;
             memcpy(&remoteId, data, 4);
             LOG_DEBUG("Raamses: HEARTBEAT from %08X status=%u", remoteId, data[4]);
+            // Bridge: relay heartbeat to HTTP gateway
+            if (wifiConnected && pagerId == RaamsesProto::BRIDGE) {
+                relayHeartbeatToGateway(data, len);
+            }
         }
         break;
 
@@ -263,7 +327,6 @@ ProcessMessage RaamsesModule::handleReceived(const meshtastic_MeshPacket &mp)
 
 bool RaamsesModule::wantPacket(const meshtastic_MeshPacket *p)
 {
-    // Filter by port and minimum valid header size
     return p->decoded.portnum == ourPortNum &&
            p->decoded.payload.size >= RaamsesProto::HEADER_SIZE;
 }
@@ -294,7 +357,7 @@ void RaamsesModule::fallbackToLoRa()
 {
     WiFi.disconnect();
     wifiConnected = false;
-    pagerId = 0x01;  // node mode
+    pagerId = 0x01;
     statusMessage = "LoRa mesh mode";
 #if HAS_SCREEN
     showStatusScreen();
@@ -339,7 +402,7 @@ int32_t RaamsesModule::runOnce()
             return 100;
     }
 
-    // ── Button check (toggle Raamses overlay / Meshtastic UI) ──
+    // ── Button check ──────────────────────────────────────
 #ifdef BUTTON_PIN
     if (now - lastButtonCheck > 200) {
         bool btn = digitalRead(BUTTON_PIN);
@@ -359,14 +422,13 @@ int32_t RaamsesModule::runOnce()
     }
 #endif
 
-    // ── Refresh nodeId (available after nodeDB init) ────────
+    // ── Refresh nodeId ────────────────────────────────────
     if (nodeId == 0) {
         nodeId = nodeDB->getNodeNum();
     }
 
     switch (state) {
 
-    // ════════════════════════════════════════════════════════
     case STARTUP: {
         if (!splashShown) {
 #if HAS_SCREEN
@@ -395,7 +457,6 @@ int32_t RaamsesModule::runOnce()
         return 200;
     }
 
-    // ════════════════════════════════════════════════════════
     case WIFI_CONNECTING: {
         WiFi.mode(WIFI_STA);
         esp_wifi_set_max_tx_power(78);
@@ -410,7 +471,7 @@ int32_t RaamsesModule::runOnce()
                          wifiRetries, RAAMSES_WIFI_MAX_RETRIES);
 
                 if (wifiRetries >= RAAMSES_WIFI_MAX_RETRIES) {
-                    LOG_WARN("Raamses: max WiFi retries reached — falling back to LoRa");
+                    LOG_WARN("Raamses: max WiFi retries — falling back to LoRa");
                     fallbackToLoRa();
                     return 0;
                 }
@@ -429,11 +490,9 @@ int32_t RaamsesModule::runOnce()
         return 0;
     }
 
-    // ════════════════════════════════════════════════════════
     case WIFI_CONNECTED: {
         statusMessage = "Registering with gateway...";
 
-        // Use Meshtastic node ID instead of efuse MAC
         String deviceId = "meshtastic_" + String(nodeId, HEX);
         String json = "{\"device_id\":\"" + deviceId +
                       "\",\"device_type\":\"" RAAMSES_DEVICE_TYPE
@@ -458,7 +517,6 @@ int32_t RaamsesModule::runOnce()
         return 0;
     }
 
-    // ════════════════════════════════════════════════════════
     case GATEWAY_ACTIVE: {
         if (!wifiConnected) {
             statusMessage = "WiFi disconnected — falling back to LoRa";
@@ -466,7 +524,7 @@ int32_t RaamsesModule::runOnce()
             return 0;
         }
 
-        // Heartbeat
+        // HTTP Heartbeat
         if (now - lastHeartbeat >= 8000) {
             String deviceId = "meshtastic_" + String(nodeId, HEX);
             String hbResp = gatewayPost("/heartbeat",
@@ -477,7 +535,7 @@ int32_t RaamsesModule::runOnce()
             lastHeartbeat = now;
         }
 
-        // Poll
+        // Gateway poll
         if (now - lastPoll >= 5000) {
             String body = gatewayGet("/agents");
             lastPoll = now;
@@ -498,7 +556,8 @@ int32_t RaamsesModule::runOnce()
             if (needsHelp && !lastAlertState) {
                 triggerLocalAlert("via gateway");
                 alertCount++;
-                sendAlert(alertCount);
+                alertSeq++;  // new sequence for this alert event
+                sendAlert(alertCount, alertSeq);
                 lastMeshAlertAt = now;
                 lastAlertState = true;
             }
@@ -509,7 +568,7 @@ int32_t RaamsesModule::runOnce()
 #if HAS_SCREEN
                 showStatusScreen();
 #endif
-                sendClear(alertCount);
+                sendClear(alertCount, alertSeq);  // same seq as the alert
                 lastAlertState = false;
             }
 
@@ -527,26 +586,23 @@ int32_t RaamsesModule::runOnce()
         return 500;
     }
 
-    // ════════════════════════════════════════════════════════
     case LORA_REGISTER: {
-        // Send REGISTER on private channel, wait for ACK
         sendRegister();
-        LOG_INFO("Raamses: sent LoRa REGISTER, waiting 2s for ACK");
+        LOG_INFO("Raamses: sent LoRa REGISTER, waiting 2s");
         state = LORA_ACTIVE;
         stateSince = now;
         lastHeartbeat = now;
         return 2000;
     }
 
-    // ════════════════════════════════════════════════════════
     case LORA_ACTIVE: {
-        // Periodic HEARTBEAT every 30 seconds
+        // Periodic HEARTBEAT
         if (now - lastHeartbeat >= 30000) {
             sendHeartbeat();
             lastHeartbeat = now;
         }
 
-        // If WiFi comes back, try to reconnect
+        // Re-attempt WiFi periodically
         if (now - stateSince > 60000 && wifiRetries < RAAMSES_WIFI_MAX_RETRIES) {
             LOG_INFO("Raamses: attempting WiFi reconnect from LoRa mode");
             state = WIFI_CONNECTING;

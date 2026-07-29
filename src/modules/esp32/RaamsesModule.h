@@ -43,6 +43,11 @@ class RaamsesModule : private concurrency::OSThread, public SinglePortModule
     uint8_t pagerId = 0x01;
     uint8_t wifiRetries = 0;
 
+    // Sequence numbers: reject stale/duplicate ALERT/CLEAR
+    uint16_t alertSeq = 0;       // next outgoing ALERT sequence
+    uint16_t lastAlertSeq = 0;   // last received ALERT sequence
+    bool haveLastSeq = false;    // true after first ALERT received
+
     // LED flash state
     uint32_t ledFlashUntil = 0;
     int ledFlashPhase = 0;
@@ -76,11 +81,15 @@ class RaamsesModule : private concurrency::OSThread, public SinglePortModule
     void sendMeshPacket(const uint8_t *payload, uint8_t size);
 
     // Legacy wrappers for specific packet types
-    void sendAlert(uint8_t count);
+    void sendAlert(uint8_t count, uint16_t seq);
     void sendAck(uint8_t pagerId);
-    void sendClear(uint8_t count);
+    void sendClear(uint8_t count, uint16_t seq);
     void sendHeartbeat();
     void sendRegister();
+
+    // Relay: forward LoRa packets to HTTP gateway (bridge mode only)
+    void relayRegisterToGateway(const uint8_t *data, uint8_t len);
+    void relayHeartbeatToGateway(const uint8_t *data, uint8_t len);
 
     void triggerLocalAlert(const char *source);
     void flashLed(uint32_t durationMs);
