@@ -59,3 +59,8 @@
 #define RAAMSES_DEVICE_TYPE "thinknode_m2"
 
 #define HAS_RAAMSES 1
+
+// ───── Raamses Mesh Channel ─────
+#define RAAMSES_CHANNEL_INDEX 1
+#define RAAMSES_CHANNEL_KEY "raamses-mesh-key-2025"
+#define RAAMSES_WIFI_MAX_RETRIES 3

@@ -66,3 +66,14 @@
 
 // Enable the Raamses module
 #define HAS_RAAMSES 1
+
+// ───── Raamses Mesh Channel ─────
+// Private LoRa channel for Raamses console↔gateway communication.
+// Set up via Meshtastic app: secondary channel, name "raamses",
+// PSK must match RAAMSES_CHANNEL_KEY on Pi gateway.
+// Index 1 = secondary channel (index 0 = primary "LongFast").
+#define RAAMSES_CHANNEL_INDEX 1
+#define RAAMSES_CHANNEL_KEY "raamses-mesh-key-2025"
+
+// WiFi fallback: retry this many times before switching to LoRa-only mode.
+#define RAAMSES_WIFI_MAX_RETRIES 3
