@@ -46,8 +46,8 @@ PACKAGES:
 [ComponentManager] Component not found: espressif/esp-zigbee-lib
 [ComponentManager] Component not found: espressif/mqtt
 [ComponentManager] BT/BLE protection enabled
-[ComponentManager] Protected BT library: bt
 [ComponentManager] Protected BT library: nimble-arduino
+[ComponentManager] Protected BT library: bt
 [ComponentManager] Processed 15 ignored libraries
 [ComponentManager] Session completed with 25 changes
 *** Add "custom_sdkconfig" settings to IDF sdkconfig.defaults ***
@@ -282,11 +282,11 @@ Compiling .pio\build\thinknode-m2-raamses\.dummy\arduino-lib-builder-as.S.o
 Generating LD script .pio\build\thinknode-m2-raamses\esp-idf\esp_system\ld\memory.ld.in
 Generating LD script .pio\build\thinknode-m2-raamses\esp-idf\esp_system\ld\sections.ld.in
 Compiling .pio\build\thinknode-m2-raamses\app_trace\app_trace.c.o
+Generating LD script .pio\build\thinknode-m2-raamses\memory.ld
 Compiling .pio\build\thinknode-m2-raamses\app_trace\app_trace_util.c.o
 Compiling .pio\build\thinknode-m2-raamses\app_trace\host_file_io.c.o
 Compiling .pio\build\thinknode-m2-raamses\app_trace\port\port_uart.c.o
 Compiling .pio\build\thinknode-m2-raamses\app_update\esp_ota_ops.c.o
-Generating LD script .pio\build\thinknode-m2-raamses\memory.ld
 Compiling .pio\build\thinknode-m2-raamses\app_update\esp_ota_app_desc.c.o
 Compiling .pio\build\thinknode-m2-raamses\bootloader_support\src\bootloader_common.c.o
 Compiling .pio\build\thinknode-m2-raamses\bootloader_support\src\bootloader_common_loader.c.o
@@ -298,6 +298,7 @@ Compiling .pio\build\thinknode-m2-raamses\bootloader_support\src\flash_encrypt.c
 Compiling .pio\build\thinknode-m2-raamses\bootloader_support\src\secure_boot.c.o
 Compiling .pio\build\thinknode-m2-raamses\bootloader_support\src\bootloader_random_esp32s3.c.o
 Compiling .pio\build\thinknode-m2-raamses\bootloader_support\bootloader_flash\src\bootloader_flash.c.o
+Archiving .pio\build\thinknode-m2-raamses\esp-idf\app_trace\libapp_trace.a
 Compiling .pio\build\thinknode-m2-raamses\bootloader_support\bootloader_flash\src\flash_qio_mode.c.o
 Compiling .pio\build\thinknode-m2-raamses\bootloader_support\bootloader_flash\src\bootloader_flash_config_esp32s3.c.o
 Compiling .pio\build\thinknode-m2-raamses\bootloader_support\src\bootloader_utility.c.o
@@ -306,32 +307,8 @@ Compiling .pio\build\thinknode-m2-raamses\bootloader_support\src\esp_image_forma
 Compiling .pio\build\thinknode-m2-raamses\bootloader_support\src\bootloader_sha.c.o
 Compiling .pio\build\thinknode-m2-raamses\bootloader_support\src\esp32s3\secure_boot_secure_features.c.o
 Compiling .pio\build\thinknode-m2-raamses\bt\controller\esp32c3\bt.c.o
-Archiving .pio\build\thinknode-m2-raamses\esp-idf\app_trace\libapp_trace.a
-Compiling .pio\build\thinknode-m2-raamses\bt\common\btc\core\btc_alarm.c.o
-Compiling .pio\build\thinknode-m2-raamses\bt\common\api\esp_blufi_api.c.o
 Archiving .pio\build\thinknode-m2-raamses\esp-idf\app_update\libapp_update.a
-Compiling .pio\build\thinknode-m2-raamses\bt\common\hci_log\bt_hci_log.c.o
-Compiling .pio\build\thinknode-m2-raamses\bt\common\btc\core\btc_manage.c.o
-Compiling .pio\build\thinknode-m2-raamses\bt\common\btc\core\btc_task.c.o
-Compiling .pio\build\thinknode-m2-raamses\bt\common\btc\profile\esp\blufi\blufi_prf.c.o
-Archiving .pio\build\thinknode-m2-raamses\esp-idf\bootloader_support\libbootloader_support.a
-Compiling .pio\build\thinknode-m2-raamses\bt\common\btc\profile\esp\blufi\blufi_protocol.c.o
-Compiling .pio\build\thinknode-m2-raamses\bt\common\osi\alarm.c.o
-Compiling .pio\build\thinknode-m2-raamses\bt\common\osi\allocator.c.o
-Compiling .pio\build\thinknode-m2-raamses\bt\common\osi\buffer.c.o
-Compiling .pio\build\thinknode-m2-raamses\bt\common\osi\config.c.o
-Compiling .pio\build\thinknode-m2-raamses\bt\common\osi\fixed_queue.c.o
-Compiling .pio\build\thinknode-m2-raamses\bt\common\osi\pkt_queue.c.o
-Compiling .pio\build\thinknode-m2-raamses\bt\common\osi\fixed_pkt_queue.c.o
-Compiling .pio\build\thinknode-m2-raamses\bt\common\osi\future.c.o
-Compiling .pio\build\thinknode-m2-raamses\bt\common\osi\hash_functions.c.o
-Compiling .pio\build\thinknode-m2-raamses\bt\common\osi\hash_map.c.o
-Compiling .pio\build\thinknode-m2-raamses\bt\common\osi\list.c.o
-Compiling .pio\build\thinknode-m2-raamses\bt\common\osi\mutex.c.o
-Compiling .pio\build\thinknode-m2-raamses\bt\common\osi\thread.c.o
-Compiling .pio\build\thinknode-m2-raamses\bt\common\osi\osi.c.o
-Compiling .pio\build\thinknode-m2-raamses\bt\common\osi\semaphore.c.o
-Compiling .pio\build\thinknode-m2-raamses\bt\porting\mem\bt_osi_mem.c.o
+Compiling .pio\build\thinknode-m2-raamses\bt\common\btc\core\btc_alarm.c.o
 <command-line>: error: expected unqualified-id before numeric constant
 C:/Users/seanr/.platformio/packages/framework-arduinoespressif32/variants/esp32s3/pins_arduino.h:25:22: note: in expansion of macro 'SDA'
    25 | static const uint8_t SDA = 8;
@@ -356,21 +333,15 @@ C:/Users/seanr/.platformio/packages/framework-arduinoespressif32/variants/esp32s
 C:/Users/seanr/.platformio/packages/framework-arduinoespressif32/variants/esp32s3/pins_arduino.h:31:22: note: in expansion of macro 'SCK'
    31 | static const uint8_t SCK = 12;
       |                      ^~~
-Compiling .pio\build\thinknode-m2-raamses\bt\common\ble_log\ble_log_spi_out.c.o
-Compiling .pio\build\thinknode-m2-raamses\bt\common\ble_log\ble_log_uhci_out.c.o
-Compiling .pio\build\thinknode-m2-raamses\bt\common\tinycrypt\src\utils.c.o
-Compiling .pio\build\thinknode-m2-raamses\bt\common\tinycrypt\src\sha256.c.o
-Compiling .pio\build\thinknode-m2-raamses\bt\common\tinycrypt\src\ecc.c.o
-Compiling .pio\build\thinknode-m2-raamses\bt\common\tinycrypt\src\ctr_prng.c.o
-Compiling .pio\build\thinknode-m2-raamses\bt\common\tinycrypt\src\ctr_mode.c.o
-Compiling .pio\build\thinknode-m2-raamses\bt\common\tinycrypt\src\aes_decrypt.c.o
-Compiling .pio\build\thinknode-m2-raamses\bt\common\tinycrypt\src\aes_encrypt.c.o
-Compiling .pio\build\thinknode-m2-raamses\bt\common\tinycrypt\src\ccm_mode.c.o
-Compiling .pio\build\thinknode-m2-raamses\bt\common\tinycrypt\src\ecc_dsa.c.o
-Compiling .pio\build\thinknode-m2-raamses\bt\common\tinycrypt\src\cmac_mode.c.o
-Compiling .pio\build\thinknode-m2-raamses\bt\common\tinycrypt\src\ecc_dh.c.o
-Compiling .pio\build\thinknode-m2-raamses\bt\common\tinycrypt\src\hmac_prng.c.o
-Compiling .pio\build\thinknode-m2-raamses\bt\common\tinycrypt\src\ecc_platform_specific.c.o
-Compiling .pio\build\thinknode-m2-raamses\bt\common\tinycrypt\src\hmac.c.o
+Compiling .pio\build\thinknode-m2-raamses\bt\common\api\esp_blufi_api.c.o
+Archiving .pio\build\thinknode-m2-raamses\esp-idf\bootloader_support\libbootloader_support.a
+Compiling .pio\build\thinknode-m2-raamses\bt\common\hci_log\bt_hci_log.c.o
+Compiling .pio\build\thinknode-m2-raamses\bt\common\btc\core\btc_manage.c.o
+Compiling .pio\build\thinknode-m2-raamses\bt\common\btc\core\btc_task.c.o
 *** [.pio\build\thinknode-m2-raamses\.dummy\sketch.cpp.o] Error 1
-=========================================================================================== [FAILED] Took 70.25 seconds ===========================================================================================
+========================================================================================== [FAILED] Took 626.35 seconds ==========================================================================================
+
+Environment           Status    Duration
+--------------------  --------  ------------
+thinknode-m2-raamses  FAILED    00:10:26.346
+====================================================================================== 1 failed, 0 succeeded in 00:10:26.346 ======================================================================================
