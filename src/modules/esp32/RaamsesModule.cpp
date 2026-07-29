@@ -56,23 +56,46 @@ void RaamsesModule::showStatusScreen()
 
     std::string msg = statusMessage;
     bool connected = wifiConnected;
+    std::string agents = agentDisplayText;
+    uint8_t nAgents = agentCount;
+    uint8_t nAlerts = agentAlertCount;
 
-    auto statusFrame = [msg, connected](OLEDDisplay *display, OLEDDisplayUiState *state, int16_t x, int16_t y) {
+    auto statusFrame = [msg, connected, agents, nAgents, nAlerts](OLEDDisplay *display, OLEDDisplayUiState *state, int16_t x, int16_t y) {
         int w = display->getWidth();
         int h = display->getHeight();
 
+        // ── Header ────────────────────────────────────────
         display->setColor(WHITE);
         display->setFont(FONT_LARGE);
         display->setTextAlignment(TEXT_ALIGN_CENTER);
-        display->drawString(w / 2 + x, 8 + y, "RAAMSES");
+        display->drawString(w / 2 + x, 0 + y, "RAAMSES");
 
+        // ── Agent list area ──────────────────────────────
         display->setFont(FONT_SMALL);
-        if (connected) {
-            display->drawString(w / 2 + x, 30 + y, "Gateway connected");
+        display->setTextAlignment(TEXT_ALIGN_LEFT);
+
+        if (connected && nAgents > 0) {
+            // Show each agent with status indicator
+            int lineY = 16;
+            // Use the pre-formatted text, split by newlines
+            size_t pos = 0;
+            size_t next;
+            std::string copy = agents;
+            while ((next = copy.find('\n', pos)) != std::string::npos && lineY < h - 20) {
+                std::string line = copy.substr(pos, next - pos);
+                display->drawString(2 + x, lineY + y, line.c_str());
+                lineY += 10;
+                pos = next + 1;
+            }
+        } else if (connected) {
+            display->setTextAlignment(TEXT_ALIGN_CENTER);
+            display->drawString(w / 2 + x, 25 + y, "Waiting for agents...");
         } else {
-            display->drawString(w / 2 + x, 30 + y, "LoRa mesh mode");
+            display->setTextAlignment(TEXT_ALIGN_CENTER);
+            display->drawString(w / 2 + x, 25 + y, "LoRa mesh mode");
         }
 
+        // ── Bottom status bar (inverted) ──────────────────
         const int barH = 16;
         int barY = h - barH;
         display->setColor(BLACK);
@@ -112,6 +135,70 @@ static String gatewayPost(const char *path, const String &jsonBody) {
     String body = (code > 0) ? http.getString() : "";
     http.end();
     return body;
+}
+
+// ─── Agent parser ─────────────────────────────────────────────
+//
+// Parses compact JSON from /agents:
+//   {"a":[{"n":"Hermes","s":"ok"},{"n":"Codex","s":"alert"}],"ok":1,"al":1}
+//
+// No JSON library needed — simple string scanning.
+
+void RaamsesModule::parseAgents(const String &body)
+{
+    // Reset
+    for (int i = 0; i < 4; i++) agents[i] = AgentInfo();
+    agentCount = 0;
+    agentAlertCount = 0;
+
+    // Scan for agent objects: {"n":"...","s":"..."}
+    int pos = 0;
+    const char *buf = body.c_str();
+
+    while (agentCount < 4) {
+        // Find next "n":"
+        const char *nameStart = strstr(buf + pos, "\"n\":\"");
+        if (!nameStart) break;
+        nameStart += 5;  // skip "n":"
+
+        // Extract name until closing quote
+        const char *nameEnd = strchr(nameStart, '\"');
+        if (!nameEnd) break;
+        int nameLen = nameEnd - nameStart;
+        if (nameLen > 15) nameLen = 15;
+
+        AgentInfo &a = agents[agentCount];
+        memcpy(a.name, nameStart, nameLen);
+        a.name[nameLen] = '\0';
+        pos = (nameEnd + 1) - buf;
+
+        // Find status: "s":"ok" or "s":"alert"
+        const char *statusStart = strstr(buf + pos, "\"s\":\"");
+        if (!statusStart) break;
+        statusStart += 5;
+        if (strncmp(statusStart, "alert", 5) == 0) {
+            a.alert = true;
+            agentAlertCount++;
+        }
+        pos = (statusStart + 1) - buf;
+
+        agentCount++;
+    }
+
+    // Format display text
+    char line[32];
+    agentDisplayText.clear();
+    for (int i = 0; i < agentCount; i++) {
+        snprintf(line, sizeof(line), "%s %s\n",
+                 agents[i].name,
+                 agents[i].alert ? "[!!]" : "[OK]");
+        agentDisplayText += line;
+    }
+    if (agentCount == 0) {
+        agentDisplayText = "No agents connected\n";
+    }
+
+    LOG_INFO("Raamses: parsed %u agents, %u alerts", agentCount, agentAlertCount);
 }
 
 // ─── Mesh protocol ────────────────────────────────────────────
@@ -177,37 +264,32 @@ void RaamsesModule::sendRegister() {
              nodeId, RaamsesProto::deviceTypeName(dt), fwVersion >> 8, fwVersion & 0xFF);
 }
 
-// ─── Mesh → HTTP relay (bridge forwards LoRa packets to gateway) ──
+// ─── Mesh → HTTP relay ────────────────────────────────────────
 
 void RaamsesModule::relayRegisterToGateway(const uint8_t *data, uint8_t len)
 {
     if (!wifiConnected || len < 5) return;
-
     uint32_t remoteId;
     memcpy(&remoteId, data, 4);
     String deviceId = "meshtastic_" + String(remoteId, HEX);
     String json = "{\"device_id\":\"" + deviceId +
                   "\",\"device_type\":\"" + String(RaamsesProto::deviceTypeName(data[4])) +
                   "\",\"source\":\"lora_relay\",\"schema_version\":\"1.0\"}";
-
     String resp = gatewayPost("/register", json);
-    LOG_INFO("Raamses: relayed REGISTER for node %08X → HTTP: %s",
+    LOG_INFO("Raamses: relayed REGISTER for node %08X -> HTTP: %s",
              remoteId, resp.length() > 0 ? "ok" : "timeout");
 }
 
 void RaamsesModule::relayHeartbeatToGateway(const uint8_t *data, uint8_t len)
 {
     if (!wifiConnected || len < 5) return;
-
     uint32_t remoteId;
     memcpy(&remoteId, data, 4);
     String deviceId = "meshtastic_" + String(remoteId, HEX);
     String json = "{\"device_id\":\"" + deviceId +
                   "\",\"uptime_seconds\":0,\"status\":" + String(data[4]) +
                   ",\"source\":\"lora_relay\"}";
-
     gatewayPost("/heartbeat", json);
-    // LOG_DEBUG for heartbeats or they'll flood the serial
 }
 
 // ─── Receive ─────────────────────────────────────────────────
@@ -234,47 +316,32 @@ ProcessMessage RaamsesModule::handleReceived(const meshtastic_MeshPacket &mp)
 
     case RaamsesProto::ALERT: {
         if (len < 3) return ProcessMessage::CONTINUE;
-
-        // Extract sequence number, reject old/duplicate ALERTs
         uint16_t seq;
         memcpy(&seq, &data[1], 2);
-
         if (haveLastSeq && seq <= lastAlertSeq) {
             LOG_WARN("Raamses: ignoring stale ALERT seq=%u (last=%u)", seq, lastAlertSeq);
             return ProcessMessage::CONTINUE;
         }
         lastAlertSeq = seq;
         haveLastSeq = true;
-
         uint32_t now = millis();
-        if (now - lastMeshAlertAt < 2000) {
-            LOG_DEBUG("Raamses: mesh alert debounced");
+        if (now - lastMeshAlertAt < 2000)
             return ProcessMessage::CONTINUE;
-        }
-        if (!lastAlertState) {
+        if (!lastAlertState)
             triggerLocalAlert("via LoRa mesh");
-        }
         lastAlertState = true;
         lastMeshAlertAt = now;
-
-        if (pagerId != RaamsesProto::BRIDGE) {
+        if (pagerId != RaamsesProto::BRIDGE)
             sendAck(pagerId);
-        }
         break;
     }
 
     case RaamsesProto::CLEAR: {
         if (len < 3) return ProcessMessage::CONTINUE;
-
-        // Only accept CLEAR with the same sequence as the active alert
         uint16_t seq;
         memcpy(&seq, &data[1], 2);
-
-        if (haveLastSeq && seq < lastAlertSeq) {
-            LOG_WARN("Raamses: ignoring stale CLEAR seq=%u (last=%u)", seq, lastAlertSeq);
+        if (haveLastSeq && seq < lastAlertSeq)
             return ProcessMessage::CONTINUE;
-        }
-
         lastAlertState = false;
         ledFlashUntil = 0;
         digitalWrite(LED_PIN, LED_STATE_ON ? LOW : HIGH);
@@ -299,22 +366,15 @@ ProcessMessage RaamsesModule::handleReceived(const meshtastic_MeshPacket &mp)
             memcpy(&remoteId, data, 4);
             LOG_INFO("Raamses: REGISTER from node %08X type=%s",
                      remoteId, RaamsesProto::deviceTypeName(data[4]));
-            // Bridge: forward to HTTP gateway so LoRa nodes appear in registry
-            if (wifiConnected && pagerId == RaamsesProto::BRIDGE) {
+            if (wifiConnected && pagerId == RaamsesProto::BRIDGE)
                 relayRegisterToGateway(data, len);
-            }
         }
         break;
 
     case RaamsesProto::HEARTBEAT:
         if (len >= 5) {
-            uint32_t remoteId;
-            memcpy(&remoteId, data, 4);
-            LOG_DEBUG("Raamses: HEARTBEAT from %08X status=%u", remoteId, data[4]);
-            // Bridge: relay heartbeat to HTTP gateway
-            if (wifiConnected && pagerId == RaamsesProto::BRIDGE) {
+            if (wifiConnected && pagerId == RaamsesProto::BRIDGE)
                 relayHeartbeatToGateway(data, len);
-            }
         }
         break;
 
@@ -377,6 +437,7 @@ RaamsesModule::RaamsesModule()
     state = STARTUP;
     stateSince = millis();
     statusMessage = "Starting up...";
+    agentDisplayText = "Waiting for agents...\n";
     nodeId = nodeDB->getNodeNum();
 }
 
@@ -384,7 +445,7 @@ int32_t RaamsesModule::runOnce()
 {
     uint32_t now = millis();
 
-    // ── LED flash pattern ─────────────────────────────────
+    // ── LED ─────────────────────────────────────────────
     if (ledFlashUntil) {
         if (now < ledFlashUntil) {
             uint32_t period = lastAlertState ? 250 : 500;
@@ -398,11 +459,10 @@ int32_t RaamsesModule::runOnce()
             ledFlashUntil = 0;
             ledFlashPhase = 0;
         }
-        if (ledFlashUntil)
-            return 100;
+        if (ledFlashUntil) return 100;
     }
 
-    // ── Button check ──────────────────────────────────────
+    // ── Button ──────────────────────────────────────────
 #ifdef BUTTON_PIN
     if (now - lastButtonCheck > 200) {
         bool btn = digitalRead(BUTTON_PIN);
@@ -422,10 +482,7 @@ int32_t RaamsesModule::runOnce()
     }
 #endif
 
-    // ── Refresh nodeId ────────────────────────────────────
-    if (nodeId == 0) {
-        nodeId = nodeDB->getNodeNum();
-    }
+    if (nodeId == 0) nodeId = nodeDB->getNodeNum();
 
     switch (state) {
 
@@ -442,8 +499,7 @@ int32_t RaamsesModule::runOnce()
             pinMode(BUTTON_PIN, INPUT_PULLUP);
 #endif
             flashLed(3000);
-            LOG_INFO("Raamses: pager 0x%02X ready, nodeId=%08X, LED pin %d",
-                     pagerId, nodeId, LED_PIN);
+            LOG_INFO("Raamses: pager 0x%02X ready, nodeId=%08X", pagerId, nodeId);
         }
         if (now - stateSince > 3000) {
 #if HAS_SCREEN
@@ -467,15 +523,11 @@ int32_t RaamsesModule::runOnce()
         while (WiFi.status() != WL_CONNECTED) {
             if (millis() - start > 15000) {
                 wifiRetries++;
-                LOG_WARN("Raamses: Wi-Fi timeout (attempt %d of %d)",
-                         wifiRetries, RAAMSES_WIFI_MAX_RETRIES);
-
                 if (wifiRetries >= RAAMSES_WIFI_MAX_RETRIES) {
                     LOG_WARN("Raamses: max WiFi retries — falling back to LoRa");
                     fallbackToLoRa();
                     return 0;
                 }
-
                 statusMessage = "WiFi timeout — retrying";
                 WiFi.disconnect();
                 return 10000;
@@ -492,7 +544,6 @@ int32_t RaamsesModule::runOnce()
 
     case WIFI_CONNECTED: {
         statusMessage = "Registering with gateway...";
-
         String deviceId = "meshtastic_" + String(nodeId, HEX);
         String json = "{\"device_id\":\"" + deviceId +
                       "\",\"device_type\":\"" RAAMSES_DEVICE_TYPE
@@ -510,7 +561,6 @@ int32_t RaamsesModule::runOnce()
             showStatusScreen();
 #endif
         } else {
-            LOG_WARN("Raamses: registration failed, retry 5s");
             statusMessage = "Gateway registration failed";
             return 5000;
         }
@@ -529,58 +579,60 @@ int32_t RaamsesModule::runOnce()
             String deviceId = "meshtastic_" + String(nodeId, HEX);
             String hbResp = gatewayPost("/heartbeat",
                         "{\"device_id\":\"" + deviceId + "\",\"uptime_seconds\":" + String(millis()/1000) + "}");
-            if (hbResp.length() == 0 || hbResp.indexOf("error") >= 0) {
+            if (hbResp.length() == 0 || hbResp.indexOf("error") >= 0)
                 statusMessage = "Server unreachable";
-            }
             lastHeartbeat = now;
         }
 
-        // Gateway poll
+        // Poll agents
         if (now - lastPoll >= 5000) {
             String body = gatewayGet("/agents");
             lastPoll = now;
 
-            if (body.length() == 0) {
-                statusMessage = "No response from server";
-            }
-
-            bool needsHelp = false;
             if (body.length() > 0) {
-                if (body.indexOf("\"needs_help\"") > 0 || body.indexOf("needs help") > 0 ||
-                    body.indexOf("AGENT_NEEDS_HELP") > 0)
-                    needsHelp = true;
-                if (body.indexOf("\"status\":\"alert\"") > 0 || body.indexOf("\"status\": \"alert\"") > 0)
-                    needsHelp = true;
-            }
+                // Parse agent list
+                parseAgents(body);
 
-            if (needsHelp && !lastAlertState) {
-                triggerLocalAlert("via gateway");
-                alertCount++;
-                alertSeq++;  // new sequence for this alert event
-                sendAlert(alertCount, alertSeq);
-                lastMeshAlertAt = now;
-                lastAlertState = true;
-            }
-            if (!needsHelp && lastAlertState) {
-                ledFlashUntil = 0;
-                digitalWrite(LED_PIN, LED_STATE_ON ? LOW : HIGH);
-                statusMessage = "All systems OK";
-#if HAS_SCREEN
-                showStatusScreen();
-#endif
-                sendClear(alertCount, alertSeq);  // same seq as the alert
-                lastAlertState = false;
-            }
+                // Status bar summary
+                char buf[32];
+                snprintf(buf, sizeof(buf), "%u agents | %u alerts",
+                         agentCount, agentAlertCount);
+                statusMessage = buf;
 
-            // Periodic status update
-            if (!lastAlertState && showingRaamsesOverlay && body.length() > 0) {
-                if (statusMessage.find("No response") != std::string::npos ||
-                    statusMessage.find("unreachable") != std::string::npos) {
-                    statusMessage = "All systems OK";
+                // Check if any agent needs help
+                bool needsHelp = (agentAlertCount > 0);
+
+                if (needsHelp && !lastAlertState) {
+                    // Find the alerting agent name for the display
+                    const char *alertName = "agent";
+                    for (int i = 0; i < agentCount; i++) {
+                        if (agents[i].alert) { alertName = agents[i].name; break; }
+                    }
+                    triggerLocalAlert(alertName);
+                    alertCount++;
+                    alertSeq++;
+                    sendAlert(alertCount, alertSeq);
+                    lastMeshAlertAt = now;
+                    lastAlertState = true;
+                }
+                if (!needsHelp && lastAlertState) {
+                    ledFlashUntil = 0;
+                    digitalWrite(LED_PIN, LED_STATE_ON ? LOW : HIGH);
 #if HAS_SCREEN
                     showStatusScreen();
 #endif
+                    sendClear(alertCount, alertSeq);
+                    lastAlertState = false;
                 }
+
+                // Refresh display with new agent data
+                if (!lastAlertState && showingRaamsesOverlay) {
+#if HAS_SCREEN
+                    showStatusScreen();  // re-render with updated agent list
+#endif
+                }
+            } else {
+                statusMessage = "No response from server";
             }
         }
         return 500;
@@ -588,7 +640,7 @@ int32_t RaamsesModule::runOnce()
 
     case LORA_REGISTER: {
         sendRegister();
-        LOG_INFO("Raamses: sent LoRa REGISTER, waiting 2s");
+        LOG_INFO("Raamses: sent LoRa REGISTER");
         state = LORA_ACTIVE;
         stateSince = now;
         lastHeartbeat = now;
@@ -596,15 +648,12 @@ int32_t RaamsesModule::runOnce()
     }
 
     case LORA_ACTIVE: {
-        // Periodic HEARTBEAT
         if (now - lastHeartbeat >= 30000) {
             sendHeartbeat();
             lastHeartbeat = now;
         }
-
-        // Re-attempt WiFi periodically
         if (now - stateSince > 60000 && wifiRetries < RAAMSES_WIFI_MAX_RETRIES) {
-            LOG_INFO("Raamses: attempting WiFi reconnect from LoRa mode");
+            LOG_INFO("Raamses: attempting WiFi reconnect");
             state = WIFI_CONNECTING;
             stateSince = now;
             return 0;

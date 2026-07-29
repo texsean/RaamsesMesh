@@ -10,15 +10,20 @@
 #include <WiFi.h>
 #include <HTTPClient.h>
 #include <string>
+#include <vector>
+
+// ─── Agent info (parsed from /agents JSON) ─────────────────────
+
+struct AgentInfo {
+    char name[16];
+    bool alert;          // true = needs help
+    bool online;
+
+    AgentInfo() : name{0}, alert(false), online(true) {}
+};
 
 /**
  * RaamsesModule — agent alert display, LED flash, LoRa mesh relay.
- *
- * Modes from one firmware:
- *   BRIDGE:  WiFi → HTTP register + poll gateway. Relays alerts over LoRa.
- *   LORA:    No WiFi → LoRa REGISTER + periodic HEARTBEAT on private channel.
- *
- * Protocol: variable-length binary — see RaamsesProto.h.
  */
 class RaamsesModule : private concurrency::OSThread, public SinglePortModule
 {
@@ -27,8 +32,8 @@ class RaamsesModule : private concurrency::OSThread, public SinglePortModule
         WIFI_CONNECTING,
         WIFI_CONNECTED,
         GATEWAY_ACTIVE,
-        LORA_REGISTER,      // sending REGISTER on private channel
-        LORA_ACTIVE,        // periodic HEARTBEAT, listen for ALERT
+        LORA_REGISTER,
+        LORA_ACTIVE,
     };
 
     State state = STARTUP;
@@ -43,10 +48,10 @@ class RaamsesModule : private concurrency::OSThread, public SinglePortModule
     uint8_t pagerId = 0x01;
     uint8_t wifiRetries = 0;
 
-    // Sequence numbers: reject stale/duplicate ALERT/CLEAR
-    uint16_t alertSeq = 0;       // next outgoing ALERT sequence
-    uint16_t lastAlertSeq = 0;   // last received ALERT sequence
-    bool haveLastSeq = false;    // true after first ALERT received
+    // Sequence numbers
+    uint16_t alertSeq = 0;
+    uint16_t lastAlertSeq = 0;
+    bool haveLastSeq = false;
 
     // LED flash state
     uint32_t ledFlashUntil = 0;
@@ -60,11 +65,15 @@ class RaamsesModule : private concurrency::OSThread, public SinglePortModule
     uint32_t lastButtonCheck = 0;
     bool lastButtonState = true;
 
-    // LoRa node identity (cached from nodeDB)
+    // LoRa identity
     uint32_t nodeId = 0;
+    uint16_t fwVersion = 0x0100;
 
-    // Firmware version (for REGISTER)
-    uint16_t fwVersion = 0x0100;  // v1.0
+    // Agent data from server
+    AgentInfo agents[4];
+    uint8_t agentCount = 0;
+    uint8_t agentAlertCount = 0;
+    std::string agentDisplayText;  // pre-formatted for status screen
 
   public:
     RaamsesModule();
@@ -77,25 +86,25 @@ class RaamsesModule : private concurrency::OSThread, public SinglePortModule
     virtual ProcessMessage handleReceived(const meshtastic_MeshPacket &mp) override;
     virtual bool wantPacket(const meshtastic_MeshPacket *p) override;
 
-    // Send a variable-length Raamses packet on the private channel
+    // Mesh send
     void sendMeshPacket(const uint8_t *payload, uint8_t size);
-
-    // Legacy wrappers for specific packet types
     void sendAlert(uint8_t count, uint16_t seq);
     void sendAck(uint8_t pagerId);
     void sendClear(uint8_t count, uint16_t seq);
     void sendHeartbeat();
     void sendRegister();
 
-    // Relay: forward LoRa packets to HTTP gateway (bridge mode only)
+    // Relay
     void relayRegisterToGateway(const uint8_t *data, uint8_t len);
     void relayHeartbeatToGateway(const uint8_t *data, uint8_t len);
 
+    // Parse /agents JSON response
+    void parseAgents(const String &body);
+
+    // Alert + display
     void triggerLocalAlert(const char *source);
     void flashLed(uint32_t durationMs);
     void showStatusScreen();
-
-    // Fall back to LoRa-only mode after WiFi fails
     void fallbackToLoRa();
 
 #if HAS_SCREEN
