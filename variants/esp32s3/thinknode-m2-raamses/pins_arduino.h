@@ -34,12 +34,13 @@ static const uint8_t SCL = I2C_SCL;
 static const uint8_t SDA = I2C_SDA;
 #endif
 
-// UART
+// UART (generic ESP32-S3 default — UART_TX/UART_RX are not pre-defined
+// macros on this board, so use raw pin numbers)
 #ifndef TX
-static const uint8_t TX = UART_TX;
+static const uint8_t TX = 43;
 #endif
 #ifndef RX
-static const uint8_t RX = UART_RX;
+static const uint8_t RX = 44;
 #endif
 
 #endif /* Pins_Arduino_h */

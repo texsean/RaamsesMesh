@@ -10,10 +10,18 @@
 
 #pragma once
 
+#ifndef THINKNODE_M2
 #define THINKNODE_M2
+#endif
+#ifndef HAS_RAAMSES
 #define HAS_RAAMSES
+#endif
+#ifndef HAS_SCREEN
 #define HAS_SCREEN
+#endif
+#ifndef HAS_SX1262
 #define HAS_SX1262
+#endif
 
 /* ── TODO: verify / adjust these ─────────────────────────── */
 
