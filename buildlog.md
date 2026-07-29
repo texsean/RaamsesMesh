@@ -4,8 +4,6 @@ Processing thinknode-m2-raamses (board: ESP32-S3-WROOM-1-N4; platform:
 https://github.com/meshtastic/pioarduino-platform-espressif32/archive/refs/heads/55.03.39.zip; framework: arduino)
 -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 Verbose mode can be enabled via `-v, --verbose` option
-PROGNAME: firmware-thinknode-m2-raamses-2.8.0.06b7907
-ESP32_FS_IMAGE_NAME: littlefs-thinknode-m2-raamses-2.8.0.06b7907
 CONFIGURATION: https://docs.platformio.org/page/boards/espressif32/ESP32-S3-WROOM-1-N4.html
 PLATFORM: Espressif 32 (55.3.39) > ESP32-S3-WROOM-1-N4 (4 MB Flash, No PSRAM)
 HARDWARE: ESP32S3 240MHz, 512KB RAM, 4MB Flash
@@ -48,8 +46,8 @@ PACKAGES:
 [ComponentManager] Component not found: espressif/esp-zigbee-lib
 [ComponentManager] Component not found: espressif/mqtt
 [ComponentManager] BT/BLE protection enabled
-[ComponentManager] Protected BT library: nimble-arduino
 [ComponentManager] Protected BT library: bt
+[ComponentManager] Protected BT library: nimble-arduino
 [ComponentManager] Processed 15 ignored libraries
 [ComponentManager] Session completed with 25 changes
 *** Add "custom_sdkconfig" settings to IDF sdkconfig.defaults ***
@@ -255,7 +253,6 @@ Add: CONFIG_ARDUINO_SELECTIVE_SimpleBLE=n
 Add: CONFIG_ARDUINO_SELECTIVE_RainMaker=n
 Add: CONFIG_ARDUINO_SELECTIVE_OpenThread=n
 Add: CONFIG_ARDUINO_SELECTIVE_Insights=n
-Add: # meshtastic_hybridcompile_cache_key: memory_type=default spiram=none
 Using Python 3.14.5 environment at: C:\Users\seanr\.platformio\penv\.espidf-5.5.4
 Warning: the 'src_filter' option cannot be used with ESP-IDF. Select source files to build in the project CMakeLists.txt file.
 
@@ -278,15 +275,6 @@ Found 98 compatible libraries
 Scanning dependencies...
 No dependencies
 Building in release mode
-Using meshtastic platformio-custom.py, firmware version 2.8.0.06b7907 on thinknode-m2-raamses
-Using flags:
--DAPP_VERSION=2.8.0.06b7907
--DAPP_VERSION_SHORT=2.8.0
--DAPP_ENV=thinknode-m2-raamses
--DAPP_REPO=git@github.com:texsean/RaamsesMesh
--DBUILD_EPOCH=1785301200
--DUSERPREFS_RINGTONE_RTTTL=\"24:d=32,o=5,b=565:f6,p,f6,4p,p,f6,p,f6,2p,p,b6,p,b6,p,b6,p,b6,p,b,p,b,p,b,p,b,p,b,p,b,p,b,p,b,1p.,2p.,p\"
--DUSERPREFS_TZ_STRING=\"tzplaceholder                                         \"
 Compiling .pio\build\thinknode-m2-raamses\.dummy\sketch.cpp.o
 Compiling .pio\build\thinknode-m2-raamses\.dummy\arduino-lib-builder-gcc.c.o
 Compiling .pio\build\thinknode-m2-raamses\.dummy\arduino-lib-builder-cpp.cpp.o
@@ -337,11 +325,11 @@ Compiling .pio\build\thinknode-m2-raamses\bt\common\osi\fixed_pkt_queue.c.o
 Compiling .pio\build\thinknode-m2-raamses\bt\common\osi\future.c.o
 Compiling .pio\build\thinknode-m2-raamses\bt\common\osi\hash_functions.c.o
 Compiling .pio\build\thinknode-m2-raamses\bt\common\osi\hash_map.c.o
-Archiving .pio\build\thinknode-m2-raamses\esp-idf\bootloader_support\libbootloader_support.a
 Compiling .pio\build\thinknode-m2-raamses\bt\common\osi\list.c.o
 Compiling .pio\build\thinknode-m2-raamses\bt\common\osi\mutex.c.o
 Compiling .pio\build\thinknode-m2-raamses\bt\common\osi\thread.c.o
 Compiling .pio\build\thinknode-m2-raamses\bt\common\osi\osi.c.o
+Archiving .pio\build\thinknode-m2-raamses\esp-idf\bootloader_support\libbootloader_support.a
 Compiling .pio\build\thinknode-m2-raamses\bt\common\osi\semaphore.c.o
 Compiling .pio\build\thinknode-m2-raamses\bt\porting\mem\bt_osi_mem.c.o
 Compiling .pio\build\thinknode-m2-raamses\bt\common\ble_log\ble_log_spi_out.c.o
@@ -461,16 +449,15 @@ Compiling .pio\build\thinknode-m2-raamses\console\argtable3\arg_file.c.o
 Compiling .pio\build\thinknode-m2-raamses\console\argtable3\arg_hashtable.c.o
 Compiling .pio\build\thinknode-m2-raamses\console\argtable3\arg_int.c.o
 Compiling .pio\build\thinknode-m2-raamses\console\argtable3\arg_lit.c.o
+Archiving .pio\build\thinknode-m2-raamses\esp-idf\cmock\libcmock.a
 Compiling .pio\build\thinknode-m2-raamses\console\argtable3\arg_rem.c.o
 Compiling .pio\build\thinknode-m2-raamses\console\argtable3\arg_rex.c.o
 Compiling .pio\build\thinknode-m2-raamses\console\argtable3\arg_str.c.o
-Archiving .pio\build\thinknode-m2-raamses\esp-idf\cmock\libcmock.a
 Compiling .pio\build\thinknode-m2-raamses\console\argtable3\arg_utils.c.o
 Compiling .pio\build\thinknode-m2-raamses\console\argtable3\argtable3.c.o
 Compiling .pio\build\thinknode-m2-raamses\cxx\cxx_exception_stubs.cpp.o
 Compiling .pio\build\thinknode-m2-raamses\cxx\cxx_guards.cpp.o
 Compiling .pio\build\thinknode-m2-raamses\cxx\cxx_init.cpp.o
-Archiving .pio\build\thinknode-m2-raamses\esp-idf\bt\libbt.a
 Compiling .pio\build\thinknode-m2-raamses\driver\deprecated\adc_legacy.c.o
 Compiling .pio\build\thinknode-m2-raamses\driver\deprecated\adc_dma_legacy.c.o
 Compiling .pio\build\thinknode-m2-raamses\driver\deprecated\timer_legacy.c.o
@@ -479,6 +466,7 @@ Compiling .pio\build\thinknode-m2-raamses\driver\deprecated\i2s_legacy.c.o
 Compiling .pio\build\thinknode-m2-raamses\driver\deprecated\mcpwm_legacy.c.o
 Compiling .pio\build\thinknode-m2-raamses\driver\deprecated\pcnt_legacy.c.o
 Compiling .pio\build\thinknode-m2-raamses\driver\deprecated\rmt_legacy.c.o
+Archiving .pio\build\thinknode-m2-raamses\esp-idf\bt\libbt.a
 Compiling .pio\build\thinknode-m2-raamses\driver\deprecated\sigma_delta_legacy.c.o
 Compiling .pio\build\thinknode-m2-raamses\driver\deprecated\rtc_temperature_legacy.c.o
 Compiling .pio\build\thinknode-m2-raamses\driver\touch_sensor\touch_sensor_common.c.o
@@ -494,8 +482,8 @@ Compiling .pio\build\thinknode-m2-raamses\efuse\src\esp_efuse_utility.c.o
 Compiling .pio\build\thinknode-m2-raamses\efuse\src\efuse_controller\keys\with_key_purposes\esp_efuse_api_key.c.o
 Compiling .pio\build\thinknode-m2-raamses\efuse\src\esp_efuse_startup.c.o
 Archiving .pio\build\thinknode-m2-raamses\esp-idf\console\libconsole.a
-Archiving .pio\build\thinknode-m2-raamses\esp-idf\cxx\libcxx.a
 Compiling .pio\build\thinknode-m2-raamses\esp-tls\esp_tls.c.o
+Archiving .pio\build\thinknode-m2-raamses\esp-idf\cxx\libcxx.a
 Compiling .pio\build\thinknode-m2-raamses\esp-tls\esp-tls-crypto\esp_tls_crypto.c.o
 Compiling .pio\build\thinknode-m2-raamses\esp-tls\esp_tls_error_capture.c.o
 Compiling .pio\build\thinknode-m2-raamses\esp-tls\esp_tls_platform_port.c.o
@@ -511,8 +499,8 @@ Compiling .pio\build\thinknode-m2-raamses\esp_adc\gdma\adc_dma.c.o
 Compiling .pio\build\thinknode-m2-raamses\esp_adc\adc_filter.c.o
 Compiling .pio\build\thinknode-m2-raamses\esp_adc\esp32s3\curve_fitting_coefficients.c.o
 Compiling .pio\build\thinknode-m2-raamses\esp_adc\deprecated\esp32s3\esp_adc_cal_legacy.c.o
-Archiving .pio\build\thinknode-m2-raamses\esp-idf\efuse\libefuse.a
 Compiling .pio\build\thinknode-m2-raamses\esp_app_format\esp_app_desc.c.o
+Archiving .pio\build\thinknode-m2-raamses\esp-idf\efuse\libefuse.a
 Compiling .pio\build\thinknode-m2-raamses\esp_bootloader_format\esp_bootloader_desc.c.o
 Compiling .pio\build\thinknode-m2-raamses\esp_coex\src\coexist.c.o
 Compiling .pio\build\thinknode-m2-raamses\esp_coex\src\lib_printf.c.o
@@ -522,9 +510,9 @@ Compiling .pio\build\thinknode-m2-raamses\esp_coex\src\coexist_debug.c.o
 Archiving .pio\build\thinknode-m2-raamses\esp-idf\driver\libdriver.a
 Compiling .pio\build\thinknode-m2-raamses\esp_common\src\esp_err_to_name.c.o
 Archiving .pio\build\thinknode-m2-raamses\esp-idf\esp_bootloader_format\libesp_bootloader_format.a
+Archiving .pio\build\thinknode-m2-raamses\esp-idf\esp_app_format\libesp_app_format.a
 Compiling .pio\build\thinknode-m2-raamses\esp_driver_cam\esp_cam_ctlr.c.o
 Compiling .pio\build\thinknode-m2-raamses\esp_driver_cam\dvp_share_ctrl.c.o
-Archiving .pio\build\thinknode-m2-raamses\esp-idf\esp_app_format\libesp_app_format.a
 Compiling .pio\build\thinknode-m2-raamses\esp_driver_cam\dvp\src\esp_cam_ctlr_dvp_gdma.c.o
 Compiling .pio\build\thinknode-m2-raamses\esp_driver_cam\dvp\src\esp_cam_ctlr_dvp_cam.c.o
 Compiling .pio\build\thinknode-m2-raamses\esp_driver_gpio\src\gpio.c.o
@@ -535,12 +523,12 @@ Compiling .pio\build\thinknode-m2-raamses\esp_driver_gpio\src\gpio_pin_glitch_fi
 Compiling .pio\build\thinknode-m2-raamses\esp_driver_gptimer\src\gptimer.c.o
 Compiling .pio\build\thinknode-m2-raamses\esp_driver_gptimer\src\gptimer_common.c.o
 Compiling .pio\build\thinknode-m2-raamses\esp_driver_i2c\i2c_master.c.o
-Archiving .pio\build\thinknode-m2-raamses\esp-idf\esp_adc\libesp_adc.a
-Archiving .pio\build\thinknode-m2-raamses\esp-idf\esp_coex\libesp_coex.a
-Compiling .pio\build\thinknode-m2-raamses\esp_driver_i2c\i2c_common.c.o
 Archiving .pio\build\thinknode-m2-raamses\esp-idf\esp-tls\libesp-tls.a
+Compiling .pio\build\thinknode-m2-raamses\esp_driver_i2c\i2c_common.c.o
 Compiling .pio\build\thinknode-m2-raamses\esp_driver_i2c\i2c_slave.c.o
+Archiving .pio\build\thinknode-m2-raamses\esp-idf\esp_adc\libesp_adc.a
 Compiling .pio\build\thinknode-m2-raamses\esp_driver_i2s\i2s_common.c.o
+Archiving .pio\build\thinknode-m2-raamses\esp-idf\esp_coex\libesp_coex.a
 Compiling .pio\build\thinknode-m2-raamses\esp_driver_i2s\i2s_std.c.o
 Compiling .pio\build\thinknode-m2-raamses\esp_driver_i2s\i2s_pdm.c.o
 Compiling .pio\build\thinknode-m2-raamses\esp_driver_i2s\i2s_tdm.c.o
@@ -556,105 +544,105 @@ Compiling .pio\build\thinknode-m2-raamses\esp_driver_mcpwm\src\mcpwm_sync.c.o
 Compiling .pio\build\thinknode-m2-raamses\esp_driver_mcpwm\src\mcpwm_timer.c.o
 Compiling .pio\build\thinknode-m2-raamses\esp_driver_pcnt\src\pulse_cnt.c.o
 Compiling .pio\build\thinknode-m2-raamses\esp_driver_rmt\src\rmt_common.c.o
-Archiving .pio\build\thinknode-m2-raamses\esp-idf\esp_driver_gptimer\libesp_driver_gptimer.a
 Archiving .pio\build\thinknode-m2-raamses\esp-idf\esp_common\libesp_common.a
 Archiving .pio\build\thinknode-m2-raamses\esp-idf\esp_driver_cam\libesp_driver_cam.a
 Compiling .pio\build\thinknode-m2-raamses\esp_driver_rmt\src\rmt_encoder.c.o
 Compiling .pio\build\thinknode-m2-raamses\esp_driver_rmt\src\rmt_encoder_bytes.c.o
+Archiving .pio\build\thinknode-m2-raamses\esp-idf\esp_driver_gptimer\libesp_driver_gptimer.a
 Compiling .pio\build\thinknode-m2-raamses\esp_driver_rmt\src\rmt_encoder_copy.c.o
 Compiling .pio\build\thinknode-m2-raamses\esp_driver_rmt\src\rmt_encoder_simple.c.o
+Archiving .pio\build\thinknode-m2-raamses\esp-idf\esp_driver_gpio\libesp_driver_gpio.a
 Compiling .pio\build\thinknode-m2-raamses\esp_driver_rmt\src\rmt_rx.c.o
 Compiling .pio\build\thinknode-m2-raamses\esp_driver_rmt\src\rmt_tx.c.o
 Compiling .pio\build\thinknode-m2-raamses\esp_driver_sdm\src\sdm.c.o
-Archiving .pio\build\thinknode-m2-raamses\esp-idf\esp_driver_gpio\libesp_driver_gpio.a
 Compiling .pio\build\thinknode-m2-raamses\esp_driver_sdmmc\src\sdmmc_transaction.c.o
 Compiling .pio\build\thinknode-m2-raamses\esp_driver_sdmmc\src\sdmmc_host.c.o
 Compiling .pio\build\thinknode-m2-raamses\esp_driver_sdspi\src\sdspi_crc.c.o
 Compiling .pio\build\thinknode-m2-raamses\esp_driver_sdspi\src\sdspi_host.c.o
+Archiving .pio\build\thinknode-m2-raamses\esp-idf\esp_driver_i2s\libesp_driver_i2s.a
 Compiling .pio\build\thinknode-m2-raamses\esp_driver_sdspi\src\sdspi_transaction.c.o
 Compiling .pio\build\thinknode-m2-raamses\esp_driver_spi\src\gpspi\spi_common.c.o
 Compiling .pio\build\thinknode-m2-raamses\esp_driver_spi\src\gpspi\spi_master.c.o
 Compiling .pio\build\thinknode-m2-raamses\esp_driver_spi\src\gpspi\spi_slave.c.o
 Compiling .pio\build\thinknode-m2-raamses\esp_driver_spi\src\gpspi\spi_slave_hd.c.o
-Archiving .pio\build\thinknode-m2-raamses\esp-idf\esp_driver_i2c\libesp_driver_i2c.a
 Compiling .pio\build\thinknode-m2-raamses\esp_driver_touch_sens\common\touch_sens_common.c.o
-Archiving .pio\build\thinknode-m2-raamses\esp-idf\esp_driver_i2s\libesp_driver_i2s.a
 Compiling .pio\build\thinknode-m2-raamses\esp_driver_touch_sens\hw_ver2\touch_version_specific.c.o
-Archiving .pio\build\thinknode-m2-raamses\esp-idf\esp_driver_ledc\libesp_driver_ledc.a
-Archiving .pio\build\thinknode-m2-raamses\esp-idf\esp_driver_mcpwm\libesp_driver_mcpwm.a
+Archiving .pio\build\thinknode-m2-raamses\esp-idf\esp_driver_i2c\libesp_driver_i2c.a
 Compiling .pio\build\thinknode-m2-raamses\esp_driver_tsens\src\temperature_sensor.c.o
+Archiving .pio\build\thinknode-m2-raamses\esp-idf\esp_driver_mcpwm\libesp_driver_mcpwm.a
 Compiling .pio\build\thinknode-m2-raamses\esp_driver_twai\esp_twai.c.o
-Archiving .pio\build\thinknode-m2-raamses\esp-idf\esp_driver_pcnt\libesp_driver_pcnt.a
+Archiving .pio\build\thinknode-m2-raamses\esp-idf\esp_driver_ledc\libesp_driver_ledc.a
 Compiling .pio\build\thinknode-m2-raamses\esp_driver_twai\esp_twai_onchip.c.o
 Compiling .pio\build\thinknode-m2-raamses\esp_driver_uart\src\uart.c.o
 Compiling .pio\build\thinknode-m2-raamses\esp_driver_uart\src\uart_wakeup.c.o
-Archiving .pio\build\thinknode-m2-raamses\esp-idf\esp_driver_sdm\libesp_driver_sdm.a
+Archiving .pio\build\thinknode-m2-raamses\esp-idf\esp_driver_pcnt\libesp_driver_pcnt.a
 Compiling .pio\build\thinknode-m2-raamses\esp_driver_uart\src\uhci.c.o
 Compiling .pio\build\thinknode-m2-raamses\esp_driver_uart\src\uart_vfs.c.o
 Compiling .pio\build\thinknode-m2-raamses\esp_driver_usb_serial_jtag\src\usb_serial_jtag.c.o
 Compiling .pio\build\thinknode-m2-raamses\esp_driver_usb_serial_jtag\src\usb_serial_jtag_connection_monitor.c.o
 Compiling .pio\build\thinknode-m2-raamses\esp_driver_usb_serial_jtag\src\usb_serial_jtag_vfs.c.o
 Compiling .pio\build\thinknode-m2-raamses\esp_eth\src\esp_eth.c.o
-Archiving .pio\build\thinknode-m2-raamses\esp-idf\esp_driver_sdspi\libesp_driver_sdspi.a
-Archiving .pio\build\thinknode-m2-raamses\esp-idf\esp_driver_rmt\libesp_driver_rmt.a
+Archiving .pio\build\thinknode-m2-raamses\esp-idf\esp_driver_sdm\libesp_driver_sdm.a
 Compiling .pio\build\thinknode-m2-raamses\esp_eth\src\phy\esp_eth_phy_802_3.c.o
 Compiling .pio\build\thinknode-m2-raamses\esp_eth\src\esp_eth_netif_glue.c.o
 Compiling .pio\build\thinknode-m2-raamses\esp_eth\src\spi\dm9051\esp_eth_mac_dm9051.c.o
+Archiving .pio\build\thinknode-m2-raamses\esp-idf\esp_driver_sdspi\libesp_driver_sdspi.a
+Archiving .pio\build\thinknode-m2-raamses\esp-idf\esp_driver_rmt\libesp_driver_rmt.a
 Compiling .pio\build\thinknode-m2-raamses\esp_eth\src\spi\dm9051\esp_eth_phy_dm9051.c.o
-Compiling .pio\build\thinknode-m2-raamses\esp_eth\src\spi\w5500\esp_eth_mac_w5500.c.o
 Archiving .pio\build\thinknode-m2-raamses\esp-idf\esp_driver_sdmmc\libesp_driver_sdmmc.a
+Compiling .pio\build\thinknode-m2-raamses\esp_eth\src\spi\w5500\esp_eth_mac_w5500.c.o
+Archiving .pio\build\thinknode-m2-raamses\esp-idf\esp_driver_tsens\libesp_driver_tsens.a
 Compiling .pio\build\thinknode-m2-raamses\esp_eth\src\spi\w5500\esp_eth_phy_w5500.c.o
 Compiling .pio\build\thinknode-m2-raamses\esp_eth\src\spi\ksz8851snl\esp_eth_mac_ksz8851snl.c.o
+Archiving .pio\build\thinknode-m2-raamses\esp-idf\esp_driver_touch_sens\libesp_driver_touch_sens.a
 Compiling .pio\build\thinknode-m2-raamses\esp_eth\src\spi\ksz8851snl\esp_eth_phy_ksz8851snl.c.o
 Compiling .pio\build\thinknode-m2-raamses\esp_event\default_event_loop.c.o
 Compiling .pio\build\thinknode-m2-raamses\esp_event\esp_event.c.o
-Archiving .pio\build\thinknode-m2-raamses\esp-idf\esp_driver_tsens\libesp_driver_tsens.a
 Compiling .pio\build\thinknode-m2-raamses\esp_event\esp_event_private.c.o
-Archiving .pio\build\thinknode-m2-raamses\esp-idf\esp_driver_touch_sens\libesp_driver_touch_sens.a
 Compiling .pio\build\thinknode-m2-raamses\esp_gdbstub\src\gdbstub.c.o
-Compiling .pio\build\thinknode-m2-raamses\esp_gdbstub\src\gdbstub_transport.c.o
 Archiving .pio\build\thinknode-m2-raamses\esp-idf\esp_driver_spi\libesp_driver_spi.a
+Compiling .pio\build\thinknode-m2-raamses\esp_gdbstub\src\gdbstub_transport.c.o
 Compiling .pio\build\thinknode-m2-raamses\esp_gdbstub\src\packet.c.o
-Archiving .pio\build\thinknode-m2-raamses\esp-idf\esp_driver_twai\libesp_driver_twai.a
 Compiling .pio\build\thinknode-m2-raamses\esp_gdbstub\src\port\xtensa\gdbstub_xtensa.c.o
 Compiling .pio\build\thinknode-m2-raamses\esp_gdbstub\src\port\xtensa\gdbstub-entry.S.o
 Compiling .pio\build\thinknode-m2-raamses\esp_gdbstub\src\port\xtensa\xt_debugexception.S.o
 Compiling .pio\build\thinknode-m2-raamses\esp_hid\src\esp_hidd.c.o
 Archiving .pio\build\thinknode-m2-raamses\esp-idf\esp_driver_usb_serial_jtag\libesp_driver_usb_serial_jtag.a
+Archiving .pio\build\thinknode-m2-raamses\esp-idf\esp_driver_twai\libesp_driver_twai.a
 Compiling .pio\build\thinknode-m2-raamses\esp_hid\src\esp_hidh.c.o
 Compiling .pio\build\thinknode-m2-raamses\esp_hid\src\esp_hid_common.c.o
 Compiling .pio\build\thinknode-m2-raamses\esp_hid\src\nimble_hidd.c.o
 Compiling .pio\build\thinknode-m2-raamses\esp_hid\src\nimble_hidh.c.o
 Compiling .pio\build\thinknode-m2-raamses\esp_http_client\esp_http_client.c.o
-Archiving .pio\build\thinknode-m2-raamses\esp-idf\esp_driver_uart\libesp_driver_uart.a
 Compiling .pio\build\thinknode-m2-raamses\esp_http_client\lib\http_auth.c.o
 Compiling .pio\build\thinknode-m2-raamses\esp_http_client\lib\http_header.c.o
 Compiling .pio\build\thinknode-m2-raamses\esp_http_client\lib\http_utils.c.o
 Compiling .pio\build\thinknode-m2-raamses\esp_http_server\src\httpd_main.c.o
 Compiling .pio\build\thinknode-m2-raamses\esp_http_server\src\httpd_parse.c.o
-Archiving .pio\build\thinknode-m2-raamses\esp-idf\esp_event\libesp_event.a
 Compiling .pio\build\thinknode-m2-raamses\esp_http_server\src\httpd_sess.c.o
 Compiling .pio\build\thinknode-m2-raamses\esp_http_server\src\httpd_txrx.c.o
 Compiling .pio\build\thinknode-m2-raamses\esp_http_server\src\httpd_uri.c.o
 Compiling .pio\build\thinknode-m2-raamses\esp_http_server\src\httpd_ws.c.o
+Archiving .pio\build\thinknode-m2-raamses\esp-idf\esp_driver_uart\libesp_driver_uart.a
 Compiling .pio\build\thinknode-m2-raamses\esp_http_server\src\util\ctrl_sock.c.o
 Compiling .pio\build\thinknode-m2-raamses\esp_https_ota\src\esp_https_ota.c.o
 Compiling .pio\build\thinknode-m2-raamses\esp_https_server\src\https_server.c.o
+Archiving .pio\build\thinknode-m2-raamses\esp-idf\esp_gdbstub\libesp_gdbstub.a
+Archiving .pio\build\thinknode-m2-raamses\esp-idf\esp_event\libesp_event.a
 Compiling .pio\build\thinknode-m2-raamses\esp_hw_support\cpu.c.o
+Archiving .pio\build\thinknode-m2-raamses\esp-idf\esp_eth\libesp_eth.a
 Compiling .pio\build\thinknode-m2-raamses\esp_hw_support\port\esp32s3\esp_cpu_intr.c.o
 Compiling .pio\build\thinknode-m2-raamses\esp_hw_support\esp_memory_utils.c.o
 Compiling .pio\build\thinknode-m2-raamses\esp_hw_support\port\esp32s3\cpu_region_protect.c.o
-Archiving .pio\build\thinknode-m2-raamses\esp-idf\esp_gdbstub\libesp_gdbstub.a
-Archiving .pio\build\thinknode-m2-raamses\esp-idf\esp_eth\libesp_eth.a
 Compiling .pio\build\thinknode-m2-raamses\esp_hw_support\esp_clk.c.o
 Compiling .pio\build\thinknode-m2-raamses\esp_hw_support\clk_ctrl_os.c.o
 Compiling .pio\build\thinknode-m2-raamses\esp_hw_support\hw_random.c.o
 Compiling .pio\build\thinknode-m2-raamses\esp_hw_support\intr_alloc.c.o
-Archiving .pio\build\thinknode-m2-raamses\esp-idf\esp_hid\libesp_hid.a
 Compiling .pio\build\thinknode-m2-raamses\esp_hw_support\mac_addr.c.o
 Compiling .pio\build\thinknode-m2-raamses\esp_hw_support\periph_ctrl.c.o
 Compiling .pio\build\thinknode-m2-raamses\esp_hw_support\revision.c.o
 Compiling .pio\build\thinknode-m2-raamses\esp_hw_support\rtc_module.c.o
+Archiving .pio\build\thinknode-m2-raamses\esp-idf\esp_hid\libesp_hid.a
 Compiling .pio\build\thinknode-m2-raamses\esp_hw_support\regi2c_ctrl.c.o
 Compiling .pio\build\thinknode-m2-raamses\esp_hw_support\esp_gpio_reserve.c.o
 Compiling .pio\build\thinknode-m2-raamses\esp_hw_support\sar_periph_ctrl_common.c.o
@@ -669,21 +657,21 @@ Compiling .pio\build\thinknode-m2-raamses\esp_hw_support\spi_share_hw_ctrl.c.o
 Compiling .pio\build\thinknode-m2-raamses\esp_hw_support\adc_share_hw_ctrl.c.o
 Compiling .pio\build\thinknode-m2-raamses\esp_hw_support\sleep_modem.c.o
 Compiling .pio\build\thinknode-m2-raamses\esp_hw_support\sleep_modes.c.o
+Archiving .pio\build\thinknode-m2-raamses\esp-idf\esp_http_server\libesp_http_server.a
 Compiling .pio\build\thinknode-m2-raamses\esp_hw_support\sleep_console.c.o
 Compiling .pio\build\thinknode-m2-raamses\esp_hw_support\sleep_mspi.c.o
 Compiling .pio\build\thinknode-m2-raamses\esp_hw_support\sleep_usb.c.o
-Archiving .pio\build\thinknode-m2-raamses\esp-idf\esp_https_server\libesp_https_server.a
-Archiving .pio\build\thinknode-m2-raamses\esp-idf\esp_http_server\libesp_http_server.a
 Compiling .pio\build\thinknode-m2-raamses\esp_hw_support\sleep_gpio.c.o
-Archiving .pio\build\thinknode-m2-raamses\esp-idf\esp_https_ota\libesp_https_ota.a
 Compiling .pio\build\thinknode-m2-raamses\esp_hw_support\sleep_event.c.o
+Archiving .pio\build\thinknode-m2-raamses\esp-idf\esp_https_server\libesp_https_server.a
 Compiling .pio\build\thinknode-m2-raamses\esp_hw_support\dma\gdma.c.o
 Compiling .pio\build\thinknode-m2-raamses\esp_hw_support\deprecated\gdma_legacy.c.o
 Compiling .pio\build\thinknode-m2-raamses\esp_hw_support\dma\esp_async_memcpy.c.o
 Compiling .pio\build\thinknode-m2-raamses\esp_hw_support\dma\async_memcpy_gdma.c.o
-Archiving .pio\build\thinknode-m2-raamses\esp-idf\esp_http_client\libesp_http_client.a
+Archiving .pio\build\thinknode-m2-raamses\esp-idf\esp_https_ota\libesp_https_ota.a
 Compiling .pio\build\thinknode-m2-raamses\esp_hw_support\port\esp32s3\systimer.c.o
 Compiling .pio\build\thinknode-m2-raamses\esp_hw_support\mspi_timing_tuning\mspi_timing_tuning.c.o
+Archiving .pio\build\thinknode-m2-raamses\esp-idf\esp_http_client\libesp_http_client.a
 Compiling .pio\build\thinknode-m2-raamses\esp_hw_support\sleep_wake_stub.c.o
 Compiling .pio\build\thinknode-m2-raamses\esp_hw_support\esp_clock_output.c.o
 Compiling .pio\build\thinknode-m2-raamses\esp_hw_support\power_supply\brownout.c.o
@@ -714,9 +702,9 @@ Compiling .pio\build\thinknode-m2-raamses\esp_local_ctrl\proto-c\esp_local_ctrl.
 Compiling .pio\build\thinknode-m2-raamses\esp_local_ctrl\src\esp_local_ctrl_transport_ble.c.o
 Compiling .pio\build\thinknode-m2-raamses\esp_local_ctrl\src\esp_local_ctrl_transport_httpd.c.o
 Compiling .pio\build\thinknode-m2-raamses\esp_mm\esp_mmu_map.c.o
+Archiving .pio\build\thinknode-m2-raamses\esp-idf\esp_hw_support\libesp_hw_support.a
 Compiling .pio\build\thinknode-m2-raamses\esp_mm\port\esp32s3\ext_mem_layout.c.o
 Compiling .pio\build\thinknode-m2-raamses\esp_mm\esp_cache_msync.c.o
-Archiving .pio\build\thinknode-m2-raamses\esp-idf\esp_hw_support\libesp_hw_support.a
 Compiling .pio\build\thinknode-m2-raamses\esp_mm\esp_cache_utils.c.o
 Compiling .pio\build\thinknode-m2-raamses\esp_mm\heap_align_hw.c.o
 Compiling .pio\build\thinknode-m2-raamses\esp_netif\esp_netif_handlers.c.o
@@ -737,21 +725,21 @@ Compiling .pio\build\thinknode-m2-raamses\esp_phy\src\phy_init.c.o
 Compiling .pio\build\thinknode-m2-raamses\esp_phy\esp32s3\phy_init_data.c.o
 Compiling .pio\build\thinknode-m2-raamses\esp_phy\src\btbb_init.c.o
 Compiling .pio\build\thinknode-m2-raamses\esp_pm\pm_locks.c.o
+Archiving .pio\build\thinknode-m2-raamses\esp-idf\esp_mm\libesp_mm.a
 Compiling .pio\build\thinknode-m2-raamses\esp_pm\pm_trace.c.o
 Compiling .pio\build\thinknode-m2-raamses\esp_pm\pm_impl.c.o
 Archiving .pio\build\thinknode-m2-raamses\esp-idf\esp_local_ctrl\libesp_local_ctrl.a
 Compiling .pio\build\thinknode-m2-raamses\esp_psram\system_layer\esp_psram_mspi.c.o
 Compiling .pio\build\thinknode-m2-raamses\esp_ringbuf\ringbuf.c.o
-Archiving .pio\build\thinknode-m2-raamses\esp-idf\esp_mm\libesp_mm.a
 Compiling .pio\build\thinknode-m2-raamses\esp_rom\patches\esp_rom_sys.c.o
 Compiling .pio\build\thinknode-m2-raamses\esp_rom\patches\esp_rom_print.c.o
 Compiling .pio\build\thinknode-m2-raamses\esp_rom\patches\esp_rom_crc.c.o
 Compiling .pio\build\thinknode-m2-raamses\esp_rom\patches\esp_rom_uart.c.o
 Compiling .pio\build\thinknode-m2-raamses\esp_rom\patches\esp_rom_spiflash.c.o
-Archiving .pio\build\thinknode-m2-raamses\esp-idf\esp_lcd\libesp_lcd.a
 Compiling .pio\build\thinknode-m2-raamses\esp_rom\patches\esp_rom_efuse.c.o
 Compiling .pio\build\thinknode-m2-raamses\esp_rom\patches\esp_rom_gpio.c.o
 Compiling .pio\build\thinknode-m2-raamses\esp_rom\patches\esp_rom_longjmp.S.o
+Archiving .pio\build\thinknode-m2-raamses\esp-idf\esp_lcd\libesp_lcd.a
 Compiling .pio\build\thinknode-m2-raamses\esp_rom\patches\esp_rom_systimer.c.o
 Compiling .pio\build\thinknode-m2-raamses\esp_rom\patches\esp_rom_wdt.c.o
 Compiling .pio\build\thinknode-m2-raamses\esp_rom\patches\esp_rom_cache_esp32s2_esp32s3.c.o
@@ -760,38 +748,38 @@ Compiling .pio\build\thinknode-m2-raamses\esp_security\src\init.c.o
 Archiving .pio\build\thinknode-m2-raamses\esp-idf\esp_partition\libesp_partition.a
 Compiling .pio\build\thinknode-m2-raamses\esp_security\src\esp_hmac.c.o
 Compiling .pio\build\thinknode-m2-raamses\esp_security\src\esp_ds.c.o
+Archiving .pio\build\thinknode-m2-raamses\esp-idf\esp_psram\libesp_psram.a
 Compiling .pio\build\thinknode-m2-raamses\esp_security\src\esp_crypto_lock.c.o
 Compiling .pio\build\thinknode-m2-raamses\esp_security\src\esp_crypto_periph_clk.c.o
-Archiving .pio\build\thinknode-m2-raamses\esp-idf\esp_phy\libesp_phy.a
 Compiling .pio\build\thinknode-m2-raamses\esp_system\esp_err.c.o
 Compiling .pio\build\thinknode-m2-raamses\esp_system\crosscore_int.c.o
-Archiving .pio\build\thinknode-m2-raamses\esp-idf\esp_psram\libesp_psram.a
 Compiling .pio\build\thinknode-m2-raamses\esp_system\esp_ipc.c.o
 Compiling .pio\build\thinknode-m2-raamses\esp_system\esp_system_console.c.o
 Compiling .pio\build\thinknode-m2-raamses\esp_system\freertos_hooks.c.o
+Archiving .pio\build\thinknode-m2-raamses\esp-idf\esp_phy\libesp_phy.a
 Compiling .pio\build\thinknode-m2-raamses\esp_system\int_wdt.c.o
 Compiling .pio\build\thinknode-m2-raamses\esp_system\panic.c.o
-Compiling .pio\build\thinknode-m2-raamses\esp_system\esp_system.c.o
 Archiving .pio\build\thinknode-m2-raamses\esp-idf\esp_pm\libesp_pm.a
+Compiling .pio\build\thinknode-m2-raamses\esp_system\esp_system.c.o
 Compiling .pio\build\thinknode-m2-raamses\esp_system\startup.c.o
 Compiling .pio\build\thinknode-m2-raamses\esp_system\startup_funcs.c.o
-Archiving .pio\build\thinknode-m2-raamses\esp-idf\esp_netif\libesp_netif.a
 Compiling .pio\build\thinknode-m2-raamses\esp_system\system_time.c.o
 Compiling .pio\build\thinknode-m2-raamses\esp_system\stack_check.c.o
 Compiling .pio\build\thinknode-m2-raamses\esp_system\ubsan.c.o
 Compiling .pio\build\thinknode-m2-raamses\esp_system\xt_wdt.c.o
 Archiving .pio\build\thinknode-m2-raamses\esp-idf\esp_ringbuf\libesp_ringbuf.a
 Compiling .pio\build\thinknode-m2-raamses\esp_system\task_wdt\task_wdt.c.o
+Archiving .pio\build\thinknode-m2-raamses\esp-idf\esp_rom\libesp_rom.a
+Archiving .pio\build\thinknode-m2-raamses\esp-idf\esp_netif\libesp_netif.a
 Compiling .pio\build\thinknode-m2-raamses\esp_system\task_wdt\task_wdt_impl_timergroup.c.o
 Compiling .pio\build\thinknode-m2-raamses\esp_system\port\cpu_start.c.o
 Compiling .pio\build\thinknode-m2-raamses\esp_system\port\panic_handler.c.o
-Archiving .pio\build\thinknode-m2-raamses\esp-idf\esp_rom\libesp_rom.a
 Compiling .pio\build\thinknode-m2-raamses\esp_system\port\esp_system_chip.c.o
 Compiling .pio\build\thinknode-m2-raamses\esp_system\port\image_process.c.o
 Compiling .pio\build\thinknode-m2-raamses\esp_system\port\esp_ipc_isr.c.o
 Compiling .pio\build\thinknode-m2-raamses\esp_system\port\arch\xtensa\esp_ipc_isr_port.c.o
-Compiling .pio\build\thinknode-m2-raamses\esp_system\port\arch\xtensa\esp_ipc_isr_handler.S.o
 Archiving .pio\build\thinknode-m2-raamses\esp-idf\esp_security\libesp_security.a
+Compiling .pio\build\thinknode-m2-raamses\esp_system\port\arch\xtensa\esp_ipc_isr_handler.S.o
 Compiling .pio\build\thinknode-m2-raamses\esp_system\port\arch\xtensa\esp_ipc_isr_routines.S.o
 Compiling .pio\build\thinknode-m2-raamses\esp_system\port\arch\xtensa\panic_arch.c.o
 Compiling .pio\build\thinknode-m2-raamses\esp_system\port\arch\xtensa\panic_handler_asm.S.o
@@ -838,13 +826,13 @@ Compiling .pio\build\thinknode-m2-raamses\espcoredump\src\port\xtensa\core_dump_
 Compiling .pio\build\thinknode-m2-raamses\managed_components\espressif__cbor\tinycbor\src\cborencoder_close_container_checked.c.o
 Archiving .pio\build\thinknode-m2-raamses\esp-idf\esp_timer\libesp_timer.a
 Compiling .pio\build\thinknode-m2-raamses\managed_components\espressif__cbor\tinycbor\src\cborencoder.c.o
+Archiving .pio\build\thinknode-m2-raamses\esp-idf\esp_vfs_console\libesp_vfs_console.a
 Compiling .pio\build\thinknode-m2-raamses\managed_components\espressif__cbor\tinycbor\src\cborencoder_float.c.o
 Compiling .pio\build\thinknode-m2-raamses\managed_components\espressif__cbor\tinycbor\src\cborerrorstrings.c.o
 Compiling .pio\build\thinknode-m2-raamses\managed_components\espressif__cbor\tinycbor\src\cborparser_dup_string.c.o
 Compiling .pio\build\thinknode-m2-raamses\managed_components\espressif__cbor\tinycbor\src\cborparser.c.o
 Compiling .pio\build\thinknode-m2-raamses\managed_components\espressif__cbor\tinycbor\src\cborparser_float.c.o
 Compiling .pio\build\thinknode-m2-raamses\managed_components\espressif__cbor\tinycbor\src\cborpretty_stdio.c.o
-Archiving .pio\build\thinknode-m2-raamses\esp-idf\esp_vfs_console\libesp_vfs_console.a
 Compiling .pio\build\thinknode-m2-raamses\managed_components\espressif__cbor\tinycbor\src\cborpretty.c.o
 Compiling .pio\build\thinknode-m2-raamses\managed_components\espressif__cbor\tinycbor\src\cbortojson.c.o
 Compiling .pio\build\thinknode-m2-raamses\managed_components\espressif__cbor\tinycbor\src\cborvalidation.c.o
@@ -860,22 +848,22 @@ Compiling .pio\build\thinknode-m2-raamses\managed_components\espressif__mdns\mdn
 Compiling .pio\build\thinknode-m2-raamses\managed_components\espressif__mdns\mdns_querier.c.o
 Compiling .pio\build\thinknode-m2-raamses\managed_components\espressif__mdns\mdns_pcb.c.o
 Archiving .pio\build\thinknode-m2-raamses\esp-idf\esp_wifi\libesp_wifi.a
-Compiling .pio\build\thinknode-m2-raamses\managed_components\espressif__mdns\mdns_service.c.o
 Archiving .pio\build\thinknode-m2-raamses\esp-idf\espcoredump\libespcoredump.a
+Compiling .pio\build\thinknode-m2-raamses\managed_components\espressif__mdns\mdns_service.c.o
 Compiling .pio\build\thinknode-m2-raamses\managed_components\espressif__mdns\mdns_mem_caps.c.o
 Compiling .pio\build\thinknode-m2-raamses\managed_components\espressif__mdns\mdns_networking_lwip.c.o
 Compiling .pio\build\thinknode-m2-raamses\managed_components\espressif__network_provisioning\src\network_config.c.o
 Compiling .pio\build\thinknode-m2-raamses\managed_components\espressif__network_provisioning\src\network_scan.c.o
 Compiling .pio\build\thinknode-m2-raamses\managed_components\espressif__network_provisioning\src\network_ctrl.c.o
 Compiling .pio\build\thinknode-m2-raamses\managed_components\espressif__network_provisioning\src\manager.c.o
+Archiving .pio\build\thinknode-m2-raamses\esp-idf\espressif__cbor\libespressif__cbor.a
+Archiving .pio\build\thinknode-m2-raamses\esp-idf\espressif__fb_gfx\libespressif__fb_gfx.a
 Compiling .pio\build\thinknode-m2-raamses\managed_components\espressif__network_provisioning\src\handlers.c.o
 Compiling .pio\build\thinknode-m2-raamses\managed_components\espressif__network_provisioning\src\scheme_console.c.o
 Compiling .pio\build\thinknode-m2-raamses\managed_components\espressif__network_provisioning\proto-c\network_config.pb-c.c.o
 Compiling .pio\build\thinknode-m2-raamses\managed_components\espressif__network_provisioning\proto-c\network_scan.pb-c.c.o
 Compiling .pio\build\thinknode-m2-raamses\managed_components\espressif__network_provisioning\proto-c\network_ctrl.pb-c.c.o
-Archiving .pio\build\thinknode-m2-raamses\esp-idf\espressif__fb_gfx\libespressif__fb_gfx.a
 Compiling .pio\build\thinknode-m2-raamses\managed_components\espressif__network_provisioning\proto-c\network_constants.pb-c.c.o
-Archiving .pio\build\thinknode-m2-raamses\esp-idf\espressif__cbor\libespressif__cbor.a
 Compiling .pio\build\thinknode-m2-raamses\managed_components\espressif__network_provisioning\src\scheme_softap.c.o
 Compiling .pio\build\thinknode-m2-raamses\managed_components\espressif__network_provisioning\src\scheme_ble.c.o
 Compiling .pio\build\thinknode-m2-raamses\fatfs\diskio\diskio.c.o
@@ -897,7 +885,6 @@ Compiling .pio\build\thinknode-m2-raamses\esp32-hal-adc.c.o
 Compiling .pio\build\thinknode-m2-raamses\esp32-hal-bt.c.o
 Compiling .pio\build\thinknode-m2-raamses\esp32-hal-cpu.c.o
 Compiling .pio\build\thinknode-m2-raamses\esp32-hal-dac.c.o
-Archiving .pio\build\thinknode-m2-raamses\esp-idf\espressif__network_provisioning\libespressif__network_provisioning.a
 Compiling .pio\build\thinknode-m2-raamses\esp32-hal-gpio.c.o
 Compiling .pio\build\thinknode-m2-raamses\esp32-hal-hosted.c.o
 Compiling .pio\build\thinknode-m2-raamses\esp32-hal-i2c.c.o
@@ -909,6 +896,7 @@ Compiling .pio\build\thinknode-m2-raamses\esp32-hal-matrix.c.o
 Compiling .pio\build\thinknode-m2-raamses\esp32-hal-misc.c.o
 Compiling .pio\build\thinknode-m2-raamses\esp32-hal-periman.c.o
 Compiling .pio\build\thinknode-m2-raamses\esp32-hal-ldo.c.o
+Archiving .pio\build\thinknode-m2-raamses\esp-idf\espressif__network_provisioning\libespressif__network_provisioning.a
 Compiling .pio\build\thinknode-m2-raamses\esp32-hal-psram.c.o
 Compiling .pio\build\thinknode-m2-raamses\esp32-hal-rgb-led.c.o
 Compiling .pio\build\thinknode-m2-raamses\esp32-hal-sigmadelta.c.o
@@ -919,8 +907,8 @@ Compiling .pio\build\thinknode-m2-raamses\esp32-hal-tinyusb.c.o
 Compiling .pio\build\thinknode-m2-raamses\esp32-hal-touch.c.o
 Compiling .pio\build\thinknode-m2-raamses\esp32-hal-touch-ng.c.o
 Compiling .pio\build\thinknode-m2-raamses\esp32-hal-uart.c.o
-Archiving .pio\build\thinknode-m2-raamses\esp-idf\fatfs\libfatfs.a
 Compiling .pio\build\thinknode-m2-raamses\esp32-hal-rmt.c.o
+Archiving .pio\build\thinknode-m2-raamses\esp-idf\fatfs\libfatfs.a
 Compiling .pio\build\thinknode-m2-raamses\Esp.cpp.o
 Compiling .pio\build\thinknode-m2-raamses\freertos_stats.cpp.o
 Compiling .pio\build\thinknode-m2-raamses\FunctionalInterrupt.cpp.o
@@ -1032,11 +1020,11 @@ C:/Users/seanr/.platformio/packages/framework-arduinoespressif32/libraries/SPI/s
 C:/Users/seanr/.platformio/packages/framework-arduinoespressif32/libraries/SPI/src/SPI.cpp:103:34: error: 'MOSI' was not declared in this scope
   103 |     _mosi = (_spi_num == FSPI) ? MOSI : -1;
       |                                  ^~~~
-Compiling .pio\build\thinknode-m2-raamses\freertos\FreeRTOS-Kernel\list.c.o
 C:/Users/seanr/.platformio/packages/framework-arduinoespressif32/libraries/SPI/src/SPI.cpp:104:32: error: 'SS' was not declared in this scope; did you mean 'ss'?
   104 |     _ss = (_spi_num == FSPI) ? SS : -1;
       |                                ^~
       |                                ss
+Compiling .pio\build\thinknode-m2-raamses\freertos\FreeRTOS-Kernel\list.c.o
 *** [.pio\build\thinknode-m2-raamses\SPI.cpp.o] Error 1
 In file included from C:/Users/seanr/.platformio/packages/framework-arduinoespressif32/libraries/SD/src/SD.cpp:19:
 C:/Users/seanr/.platformio/packages/framework-arduinoespressif32/libraries/SD/src/SD.h:31:21: error: 'SS' was not declared in this scope; did you mean 'FS'?
@@ -1052,4 +1040,9 @@ C:/Users/seanr/.platformio/packages/framework-arduinoespressif32/libraries/Wire/
    94 |         sclPin = SCL;  // use Default pin
       |                  ^~~
 *** [.pio\build\thinknode-m2-raamses\Wire.cpp.o] Error 1
-=============================================================================
+========================================================================================== [FAILED] Took 103.59 seconds ==========================================================================================
+
+Environment           Status    Duration
+--------------------  --------  ------------
+thinknode-m2-raamses  FAILED    00:01:43.588
+====================================================================================== 1 failed, 0 succeeded in 00:01:43.588 ======================================================================================
