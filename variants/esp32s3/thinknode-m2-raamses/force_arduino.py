@@ -1,13 +1,9 @@
-# Inject SPI/I2C pin defines into the global construction environment.
-# These reach ALL compilation units including framework SPI.cpp, Wire.cpp.
-# Our pins_arduino.h uses #ifndef guards so no conflict with static const defs.
+# Prepend our variant directory to the include path so our
+# pins_arduino.h is found BEFORE the framework's default.
+# Without this, SPI.cpp and Wire.cpp resolve #include "pins_arduino.h"
+# to the framework's generic ESP32-S3 default (pin 8/9/10/11/12/13)
+# instead of our variant (LORA_CS/LORA_SCK etc.).
 Import("env")
 
-env.Append(CPPDEFINES=[
-    ("SS", "10"),
-    ("SCK", "12"),
-    ("MOSI", "11"),
-    ("MISO", "13"),
-    ("SDA", "16"),
-    ("SCL", "15"),
-])
+variant_dir = env.subst("$PROJECT_DIR") + "/variants/esp32s3/thinknode-m2-raamses"
+env.Prepend(CPPPATH=[variant_dir])
