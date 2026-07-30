@@ -553,6 +553,30 @@ int32_t RaamsesModule::runOnce()
         if (resp.indexOf("\"accepted\"") > 0 || resp.indexOf("\"registered\"") > 0) {
             LOG_INFO("Raamses: gateway registered as %s", deviceId.c_str());
             statusMessage = "All systems OK";
+
+            // Check if registration response includes an active alert
+            // Server sends: {"status":"registered",...,"alert":"Agent needs help","alert_seq":4754}
+            if (resp.indexOf("\"alert\"") >= 0) {
+                int seqIdx = resp.indexOf("\"alert_seq\"");
+                if (seqIdx >= 0) {
+                    int colonIdx = resp.indexOf(':', seqIdx);
+                    if (colonIdx >= 0) {
+                        const char *numStart = resp.c_str() + colonIdx + 1;
+                        while (*numStart == ' ' || *numStart == '\t') numStart++;
+                        uint16_t parsedSeq = (uint16_t)atoi(numStart);
+                        if (parsedSeq > 0) alertSeq = parsedSeq;
+                    }
+                }
+                if (!lastAlertState) {
+                    alertCount++;
+                    if (alertSeq == 0) alertSeq++;
+                    triggerLocalAlert("via register");
+                    sendAlert(alertCount, alertSeq);
+                    lastMeshAlertAt = millis();
+                    lastAlertState = true;
+                }
+            }
+
             state = GATEWAY_ACTIVE;
             stateSince = now;
             lastHeartbeat = now;
@@ -574,13 +598,51 @@ int32_t RaamsesModule::runOnce()
             return 0;
         }
 
-        // HTTP Heartbeat
-        if (now - lastHeartbeat >= 8000) {
+        // HTTP Heartbeat (30s per spec)
+        if (now - lastHeartbeat >= 30000) {
             String deviceId = "meshtastic_" + String(nodeId, HEX);
             String hbResp = gatewayPost("/heartbeat",
                         "{\"device_id\":\"" + deviceId + "\",\"uptime_seconds\":" + String(millis()/1000) + "}");
-            if (hbResp.length() == 0 || hbResp.indexOf("error") >= 0)
+            if (hbResp.length() == 0 || hbResp.indexOf("error") >= 0) {
                 statusMessage = "Server unreachable";
+            } else {
+                // Parse alert field from heartbeat response
+                // Server sends: {"status":"ok",...,"alert":"Agent needs help","alert_seq":4754}
+                bool hbHasAlert = (hbResp.indexOf("\"alert\"") >= 0);
+                if (hbHasAlert != lastAlertState) {
+                    if (hbHasAlert) {
+                        // Parse alert_seq from response
+                        int seqIdx = hbResp.indexOf("\"alert_seq\"");
+                        if (seqIdx >= 0) {
+                            int colonIdx = hbResp.indexOf(':', seqIdx);
+                            if (colonIdx >= 0) {
+                                // Skip colon and whitespace, parse integer
+                                const char *numStart = hbResp.c_str() + colonIdx + 1;
+                                while (*numStart == ' ' || *numStart == '\t') numStart++;
+                                uint16_t parsedSeq = (uint16_t)atoi(numStart);
+                                if (parsedSeq > 0) alertSeq = parsedSeq;
+                            }
+                        }
+                        if (!lastAlertState) {
+                            alertCount++;
+                            if (alertSeq == 0) alertSeq++;
+                            triggerLocalAlert("via heartbeat");
+                            sendAlert(alertCount, alertSeq);
+                            lastMeshAlertAt = now;
+                            lastAlertState = true;
+                        }
+                    } else {
+                        // Alert cleared on server
+                        ledFlashUntil = 0;
+                        digitalWrite(LED_PIN, LED_STATE_ON ? LOW : HIGH);
+                        sendClear(alertCount, alertSeq);
+                        lastAlertState = false;
+#if HAS_SCREEN
+                        showStatusScreen();
+#endif
+                    }
+                }
+            }
             lastHeartbeat = now;
         }
 
