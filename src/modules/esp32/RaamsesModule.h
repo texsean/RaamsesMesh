@@ -60,6 +60,8 @@ class RaamsesModule : private concurrency::OSThread, public SinglePortModule
 
     // Status bar
     std::string statusMessage;
+    std::string sysInfoText;  // gateway CPU/disk stats
+    uint32_t lastSysInfoFetch = 0;
     bool showingRaamsesOverlay = false;
 
     // Button debounce
@@ -101,6 +103,7 @@ class RaamsesModule : private concurrency::OSThread, public SinglePortModule
 
     // Parse /agents JSON response
     void parseAgents(const String &body);
+    void fetchSystemStats();
 
     // Alert + display
     void triggerLocalAlert(const char *source);

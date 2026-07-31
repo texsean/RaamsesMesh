@@ -59,8 +59,9 @@ void RaamsesModule::showStatusScreen()
     std::string agents = agentDisplayText;
     uint8_t nAgents = agentCount;
     uint8_t nAlerts = agentAlertCount;
+    std::string sysinfo = sysInfoText;
 
-    auto statusFrame = [msg, connected, agents, nAgents, nAlerts](OLEDDisplay *display, OLEDDisplayUiState *state, int16_t x, int16_t y) {
+    auto statusFrame = [msg, connected, agents, nAgents, nAlerts, sysinfo](OLEDDisplay *display, OLEDDisplayUiState *state, int16_t x, int16_t y) {
         int w = display->getWidth();
         int h = display->getHeight();
 
@@ -93,6 +94,18 @@ void RaamsesModule::showStatusScreen()
         } else {
             display->setTextAlignment(TEXT_ALIGN_CENTER);
             display->drawString(w / 2 + x, 25 + y, "LoRa mesh mode");
+        }
+
+        // ── System info bar (top of bottom area) ──────────
+        if (!sysinfo.empty()) {
+            const int sysBarH = 9;
+            int sysBarY = h - 25;
+            display->setColor(BLACK);
+            display->fillRect(0 + x, sysBarY + y, w, sysBarH);
+            display->setColor(WHITE);
+            display->setFont(FONT_SMALL);
+            display->setTextAlignment(TEXT_ALIGN_CENTER);
+            display->drawString(w / 2 + x, sysBarY + y, sysinfo.c_str());
         }
 
         // ── Bottom status bar (inverted) ──────────────────
@@ -199,6 +212,35 @@ void RaamsesModule::parseAgents(const String &body)
     }
 
     LOG_INFO("Raamses: parsed %u agents, %u alerts", agentCount, agentAlertCount);
+}
+
+// ─── System stats from gateway ─────────────────────────────────
+
+void RaamsesModule::fetchSystemStats()
+{
+    if (!wifiConnected) return;
+    String body = gatewayGet("/stats");
+    if (body.length() == 0) return;
+
+    // Parse compact stats: cpu_percent, cpu_temp_c, disk_free_gb, mem_used_percent
+    auto getFloat = [&body](const char *key) -> float {
+        int idx = body.indexOf(String("\"") + key + "\":");
+        if (idx < 0) return -1;
+        const char *p = body.c_str() + idx + strlen(key) + 3;
+        return atof(p);
+    };
+
+    float cpu = getFloat("cpu_percent");
+    float temp = getFloat("cpu_temp_c");
+    float diskFree = getFloat("disk_free_gb");
+    float memPct = getFloat("mem_used_percent");
+
+    if (cpu < 0) return; // failed to parse
+
+    char buf[48];
+    snprintf(buf, sizeof(buf), "CPU %d%% %dC  MEM %d%%  DISK %.0fG",
+             (int)cpu, (int)temp, (int)memPct, diskFree);
+    sysInfoText = buf;
 }
 
 // ─── Mesh protocol ────────────────────────────────────────────
@@ -670,7 +712,6 @@ int32_t RaamsesModule::runOnce()
 
                 // Check if any agent needs help
                 bool needsHelp = (agentAlertCount > 0);
-
                 if (needsHelp && !lastAlertState) {
                     // Find the alerting agent name for the display
                     const char *alertName = "agent";
@@ -704,6 +745,13 @@ int32_t RaamsesModule::runOnce()
                 statusMessage = "No response from server";
             }
         }
+
+        // Fetch gateway system stats every 30s
+        if (now - lastSysInfoFetch >= 30000) {
+            fetchSystemStats();
+            lastSysInfoFetch = now;
+        }
+
         return 500;
     }
 
