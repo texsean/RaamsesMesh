@@ -241,7 +241,7 @@ void RaamsesModule::sendClear(uint8_t count, uint16_t seq) {
 
 void RaamsesModule::sendHeartbeat() {
     uint8_t buf[16];
-    uint8_t status = wifiConnected ? RaamsesProto::OK : RaamsesProto::LORA_ONLY;
+    uint8_t status = wifiConnected ? RaamsesProto::STATUS_OK : RaamsesProto::LORA_ONLY;
     uint8_t sz = RaamsesProto::buildHeartbeat(buf, nodeId, status);
     sendMeshPacket(buf, sz);
 }
@@ -250,11 +250,11 @@ void RaamsesModule::sendRegister() {
     uint8_t buf[16];
     uint8_t dt;
 #if defined(HELTEC_V3)
-    dt = RaamsesProto::HELTEC_V3;
+    dt = RaamsesProto::DEVICE_HELTEC_V3;
 #elif defined(HELTEC_V4)
-    dt = RaamsesProto::HELTEC_V4;
+    dt = RaamsesProto::DEVICE_HELTEC_V4;
 #elif defined(THINKNODE_M2)
-    dt = RaamsesProto::THINKNODE_M2;
+    dt = RaamsesProto::DEVICE_THINKNODE_M2;
 #else
     dt = 0x00;
 #endif

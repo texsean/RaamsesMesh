@@ -47,14 +47,14 @@ enum Cmd : uint8_t {
 
 // ── Device types ────────────────────────────────────────────
 enum DeviceType : uint8_t {
-    HELTEC_V3    = 0x01,
-    HELTEC_V4    = 0x02,
-    THINKNODE_M2 = 0x03,
+    DEVICE_HELTEC_V3    = 0x01,
+    DEVICE_HELTEC_V4    = 0x02,
+    DEVICE_THINKNODE_M2 = 0x03,
 };
 
 // ── Heartbeat status ────────────────────────────────────────
 enum Status : uint8_t {
-    OK                = 0x00,
+    STATUS_OK          = 0x00,
     WIFI_DISCONNECTED = 0x01,
     GATEWAY_UNREACH   = 0x02,
     LORA_ONLY         = 0x03,
@@ -153,10 +153,10 @@ inline const char *cmdName(uint8_t cmd) {
 
 inline const char *deviceTypeName(uint8_t dt) {
     switch (dt) {
-    case HELTEC_V3:    return "heltec_v3";
-    case HELTEC_V4:    return "heltec_v4";
-    case THINKNODE_M2: return "thinknode_m2";
-    default:           return "?";
+    case DEVICE_HELTEC_V3:    return "heltec_v3";
+    case DEVICE_HELTEC_V4:    return "heltec_v4";
+    case DEVICE_THINKNODE_M2: return "thinknode_m2";
+    default:                  return "?";
     }
 }
 
