@@ -585,9 +585,16 @@ int32_t RaamsesModule::runOnce()
             showStatusScreen();
 #endif
         } else {
+            regRetries++;
+            if (regRetries >= RAAMSES_WIFI_MAX_RETRIES) {
+                LOG_WARN("Raamses: gateway unreachable after %d retries — falling back to LoRa", regRetries);
+                fallbackToLoRa();
+                return 0;
+            }
             statusMessage = "Gateway registration failed";
             return 5000;
         }
+        regRetries = 0;  // reset on success (falls through after state = GATEWAY_ACTIVE)
         return 0;
     }
 

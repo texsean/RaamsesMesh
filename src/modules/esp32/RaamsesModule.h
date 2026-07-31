@@ -47,6 +47,7 @@ class RaamsesModule : private concurrency::OSThread, public SinglePortModule
     uint8_t alertCount = 0;
     uint8_t pagerId = 0x01;
     uint8_t wifiRetries = 0;
+    uint8_t regRetries = 0;   // registration retries for WIFI_CONNECTED fallback
 
     // Sequence numbers
     uint16_t alertSeq = 0;
