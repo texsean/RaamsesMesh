@@ -36,6 +36,7 @@
 #define OLED_ADDR     0x3C
 
 // User button
+#define BUTTON_PIN    (0)
 #define PIN_BUTTON    (0)
 #define BUTTON_NEED_PULLUP
 

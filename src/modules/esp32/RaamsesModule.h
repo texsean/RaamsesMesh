@@ -48,6 +48,7 @@ class RaamsesModule : private concurrency::OSThread, public SinglePortModule
     uint8_t pagerId = 0x01;
     uint8_t wifiRetries = 0;
     uint8_t regRetries = 0;   // registration retries for WIFI_CONNECTED fallback
+    uint8_t gatewayFailures = 0;  // consecutive heartbeat/poll failures in GATEWAY_ACTIVE
 
     // Sequence numbers
     uint16_t alertSeq = 0;
@@ -110,6 +111,8 @@ class RaamsesModule : private concurrency::OSThread, public SinglePortModule
     void flashLed(uint32_t durationMs);
     void showStatusScreen();
     void fallbackToLoRa();
+
+    static constexpr uint8_t RAAMSES_GATEWAY_MAX_FAILURES = 3;
 
 #if HAS_SCREEN
     void drawAlertOnScreen(const char *msg);

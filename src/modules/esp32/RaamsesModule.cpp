@@ -131,7 +131,7 @@ static String gatewayGet(const char *path) {
     HTTPClient http;
     String url = "http://" + String(RAAMSES_GATEWAY_HOST) + ":" + String(RAAMSES_GATEWAY_PORT) + String(path);
     http.begin(url);
-    http.setTimeout(5000);
+    http.setTimeout(3000);
     int code = http.GET();
     String body = (code > 0) ? http.getString() : "";
     http.end();
@@ -143,7 +143,7 @@ static String gatewayPost(const char *path, const String &jsonBody) {
     String url = "http://" + String(RAAMSES_GATEWAY_HOST) + ":" + String(RAAMSES_GATEWAY_PORT) + String(path);
     http.begin(url);
     http.addHeader("Content-Type", "application/json");
-    http.setTimeout(5000);
+    http.setTimeout(3000);
     int code = http.POST(jsonBody);
     String body = (code > 0) ? http.getString() : "";
     http.end();
@@ -653,8 +653,15 @@ int32_t RaamsesModule::runOnce()
             String hbResp = gatewayPost("/heartbeat",
                         "{\"device_id\":\"" + deviceId + "\",\"uptime_seconds\":" + String(millis()/1000) + "}");
             if (hbResp.length() == 0 || hbResp.indexOf("error") >= 0) {
+                gatewayFailures++;
                 statusMessage = "Server unreachable";
+                if (gatewayFailures >= RAAMSES_GATEWAY_MAX_FAILURES) {
+                    LOG_WARN("Raamses: gateway unreachable after %d failures — falling back to LoRa", gatewayFailures);
+                    fallbackToLoRa();
+                    return 0;
+                }
             } else {
+                gatewayFailures = 0;  // reset on successful contact
                 // Parse alert field from heartbeat response
                 // Server sends: {"status":"ok",...,"alert":"Agent needs help","alert_seq":4754}
                 bool hbHasAlert = (hbResp.indexOf("\"alert\"") >= 0);
@@ -701,6 +708,7 @@ int32_t RaamsesModule::runOnce()
             lastPoll = now;
 
             if (body.length() > 0) {
+                gatewayFailures = 0;  // reset on successful contact
                 // Parse agent list
                 parseAgents(body);
 
@@ -742,7 +750,13 @@ int32_t RaamsesModule::runOnce()
 #endif
                 }
             } else {
+                gatewayFailures++;
                 statusMessage = "No response from server";
+                if (gatewayFailures >= RAAMSES_GATEWAY_MAX_FAILURES) {
+                    LOG_WARN("Raamses: gateway unreachable after %d failures — falling back to LoRa", gatewayFailures);
+                    fallbackToLoRa();
+                    return 0;
+                }
             }
         }
 
